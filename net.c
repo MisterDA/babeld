@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#define __USE_GNU
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
@@ -84,6 +85,11 @@ babel_socket(int port)
     if(rc < 0)
         perror("Couldn't set traffic class");
 
+    rc = setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+                    &one, sizeof(one));
+    if(rc < 0)
+        goto fail;
+
     rc = fcntl(s, F_GETFL, 0);
     if(rc < 0)
         goto fail;
@@ -117,10 +123,13 @@ babel_socket(int port)
 }
 
 int
-babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
+babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
+           int *is_unicast)
 {
     struct iovec iovec;
     struct msghdr msg;
+    unsigned char cmsgbuf[128];
+    struct cmsghdr *cmsg;
     int rc;
 
     memset(&msg, 0, sizeof(msg));
@@ -130,8 +139,34 @@ babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
     msg.msg_namelen = slen;
     msg.msg_iov = &iovec;
     msg.msg_iovlen = 1;
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
 
     rc = recvmsg(s, &msg, 0);
+
+    if(rc < 0)
+        return rc;
+
+    if (is_unicast != NULL) {
+        *is_unicast = -1;
+        for(cmsg = CMSG_FIRSTHDR(&msg);
+            cmsg != NULL;
+            cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+            if(cmsg->cmsg_level == IPPROTO_IPV6 &&
+               cmsg->cmsg_type == IPV6_PKTINFO) {
+                struct in6_pktinfo *info =
+                    (struct in6_pktinfo*)CMSG_DATA(cmsg);
+                *is_unicast = !IN6_IS_ADDR_MULTICAST(&info->ipi6_addr);
+                break;
+            }
+        }
+        if(*is_unicast < 0) {
+            fprintf(stderr,
+                    "babel_recv: Couldn't determine source of packet.\n");
+            *is_unicast = 0;
+        }
+    }
+
     return rc;
 }
 
