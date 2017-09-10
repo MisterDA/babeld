@@ -41,6 +41,7 @@ THE SOFTWARE.
 #include "kernel.h"
 #include "configuration.h"
 #include "rule.h"
+#include "dtls.h"
 
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;
@@ -869,7 +870,11 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
               strcmp(token, "log-file") == 0 ||
               strcmp(token, "pid-file") == 0 ||
               strcmp(token, "local-path") == 0 ||
-              strcmp(token, "local-path-readwrite") == 0) {
+              strcmp(token, "local-path-readwrite") == 0 ||
+              strcmp(token, "cert-file") == 0 ||
+              strcmp(token, "private-key-file") == 0 ||
+              strcmp(token, "cacert-file") == 0 ||
+              strcmp(token, "private-key-password") == 0) {
         char *file;
         c = getstring(c, &file, gnc, closure);
         if(c < -1)
@@ -892,6 +897,14 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             free(local_server_path);
             local_server_path = file;
             local_server_write = 1;
+        } else if(strcmp(token, "cert-file") == 0) {
+            dtls_cert_file = file;
+        } else if(strcmp(token, "private-key-file") == 0) {
+            dtls_prvtkey_file = file;
+        } else if(strcmp(token, "cacert-file") == 0) {
+            dtls_cacert_file = file;
+        } else if(strcmp(token, "private-key-password") == 0) {
+            dtls_prvtkey_password = file;
         } else
             abort();
     } else if(strcmp(token, "debug") == 0) {

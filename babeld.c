@@ -46,6 +46,7 @@ THE SOFTWARE.
 #include "interface.h"
 #include "source.h"
 #include "neighbour.h"
+#include "dtls.h"
 #include "route.h"
 #include "xroute.h"
 #include "message.h"
@@ -537,10 +538,14 @@ main(int argc, char **argv)
     }
 
     init_signals();
-    rc = resize_receive_buffer(1500);
+    rc = resize_receive_buffer(8192);
     if(rc < 0)
         goto fail;
     if(receive_buffer == NULL)
+        goto fail;
+
+    rc = dtls_init();
+    if(rc)
         goto fail;
 
     check_interfaces();
@@ -611,7 +616,14 @@ main(int argc, char **argv)
             timeval_min(&tv, &ifp->update_flush_timeout);
         }
         FOR_ALL_NEIGHBOURS(neigh) {
+            struct dtls *dtls = neigh->buf.dtls;
             timeval_min(&tv, &neigh->buf.timeout);
+            if(dtls->has_timer) {
+                if(!dtls->int_time_expired)
+                    timeval_min(&tv, &dtls->int_time);
+                if(!dtls->fin_time_expired)
+                    timeval_min(&tv, &dtls->fin_time);
+            }
         }
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
@@ -659,9 +671,11 @@ main(int argc, char **argv)
         }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
+            int is_unicast;
             rc = babel_recv(protocol_socket,
                             receive_buffer, receive_buffer_size,
-                            (struct sockaddr*)&sin6, sizeof(sin6));
+                            (struct sockaddr*)&sin6, sizeof(sin6),
+                            &is_unicast);
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
@@ -672,8 +686,13 @@ main(int argc, char **argv)
                     if(!if_up(ifp))
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
-                        parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
-                                     receive_buffer, rc);
+                        if (is_unicast) {
+                            parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
+                                         receive_buffer, rc);
+                        } else {
+                            dtls_parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
+                                              receive_buffer, rc);
+                        }
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);
                         break;
@@ -683,7 +702,7 @@ main(int argc, char **argv)
         }
 
         if(local_server_socket >= 0 && FD_ISSET(local_server_socket, &readfds))
-           accept_local_connections();
+            accept_local_connections();
 
         i = 0;
         while(i < num_local_sockets) {
@@ -769,6 +788,19 @@ main(int argc, char **argv)
                 flushupdates(ifp);
         }
 
+        FOR_ALL_NEIGHBOURS(neigh) {
+            struct dtls *dtls = neigh->buf.dtls;
+            if(dtls->has_timer) {
+                if(!dtls->int_time_expired &&
+                   timeval_compare(&now, &dtls->int_time) >= 0) {
+                    dtls->int_time_expired = 1;
+                } else if(timeval_compare(&now, &dtls->fin_time) >= 0) {
+                    dtls->fin_time_expired = 1;
+                    mbedtls_ssl_handshake(&dtls->ssl);
+                }
+            }
+        }
+
         if(resend_time.tv_sec != 0) {
             if(timeval_compare(&now, &resend_time) >= 0)
                 do_resend();
@@ -831,6 +863,8 @@ main(int argc, char **argv)
     release_tables();
     kernel_setup_socket(0);
     kernel_setup(0);
+
+    dtls_free();
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {

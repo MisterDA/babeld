@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "message.h"
 #include "configuration.h"
+#include "dtls.h"
 
 unsigned char packet_header[4] = {42, 2};
 
@@ -903,11 +904,18 @@ flushbuf(struct buffered *buf)
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf);
-        rc = babel_send(protocol_socket,
-                        packet_header, sizeof(packet_header),
-                        buf->buf, buf->len,
-                        (struct sockaddr*)&buf->sin6,
-                        sizeof(buf->sin6));
+
+        if (buf->dtls != NULL) {
+            rc = dtls_send(packet_header, sizeof(packet_header),
+                           buf->buf, buf->len,
+                           buf->dtls);
+        } else {
+            rc = babel_send(protocol_socket,
+                            packet_header, sizeof(packet_header),
+                            buf->buf, buf->len,
+                            (struct sockaddr*)&buf->sin6,
+                            sizeof(buf->sin6));
+        }
         if(rc < 0)
             perror("send");
     }

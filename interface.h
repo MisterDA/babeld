@@ -96,7 +96,10 @@ struct buffered {
     /* Relative position of the Hello message in the send buffer, or
        (-1) if there is none. */
     int hello;
+
+    struct dtls *dtls;
 };
+
 
 struct interface {
     struct interface *next;

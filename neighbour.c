@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "resend.h"
 #include "local.h"
+#include "dtls.h"
 
 struct neighbour *neighs = NULL;
 
@@ -68,6 +69,7 @@ flush_neighbour(struct neighbour *neigh)
         previous->next = neigh->next;
     }
     local_notify_neighbour(neigh, LOCAL_FLUSH);
+    dtls_flush_neighbour(neigh);
     free(neigh->buf.buf);
     free(neigh);
 }
@@ -78,6 +80,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     struct neighbour *neigh;
     const struct timeval zero = {0, 0};
     char *buf;
+    int rc;
 
     neigh = find_neighbour_nocreate(address, ifp);
     if(neigh)
@@ -114,9 +117,24 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     memcpy(&neigh->buf.sin6.sin6_addr, address, 16);
     neigh->buf.sin6.sin6_port = htons(protocol_port);
     neigh->buf.sin6.sin6_scope_id = ifp->ifindex;
+
+    rc = dtls_setup_neighbour(neigh);
+    if(rc) {
+        free(buf);
+        free(neigh);
+        return NULL;
+    }
+
     neigh->next = neighs;
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);
+
+    rc = dtls_handshake(neigh);
+    if(rc) {
+        /* FIXME: first step of handshaking has failed */
+        return neigh;
+    }
+
     send_hello(ifp);
     return neigh;
 }

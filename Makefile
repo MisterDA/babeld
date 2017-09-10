@@ -1,24 +1,25 @@
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
-CDEBUGFLAGS = -Os -g -Wall
+CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter \
+              -DMBEDTLS_DEBUG_C -DUSE_MBEDTLS_TEST_CERTS
 
 DEFINES = $(PLATFORM_DEFINES)
 
 CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
-LDLIBS = -lrt
+LDLIBS = -lrt -lmbedx509 -lmbedcrypto -lmbedtls
 
 SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
-       disambiguation.c rule.c
+       disambiguation.c rule.c dtls.c
 
 OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        route.o xroute.o message.o resend.o configuration.o local.o \
-       disambiguation.o rule.o
+       disambiguation.o rule.o dtls.o
 
 babeld: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(LDLIBS) $(OBJS)
 
 babeld.o: babeld.c version.h
 
