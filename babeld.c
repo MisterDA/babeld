@@ -663,7 +663,8 @@ main(int argc, char **argv)
         if(FD_ISSET(protocol_socket, &readfds)) {
             rc = babel_recv(protocol_socket,
                             receive_buffer, receive_buffer_size,
-                            (struct sockaddr*)&sin6, sizeof(sin6));
+                            (struct sockaddr*)&sin6, sizeof(sin6),
+                            NULL);
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
