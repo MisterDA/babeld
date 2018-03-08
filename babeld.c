@@ -617,12 +617,14 @@ main(int argc, char **argv)
         }
         FOR_ALL_NEIGHBOURS(neigh) {
             struct dtls *dtls = neigh->buf.dtls;
-            timeval_min(&tv, &neigh->buf.timeout);
-            if(dtls->has_timer) {
-                if(!dtls->int_time_expired)
-                    timeval_min(&tv, &dtls->int_time);
-                if(!dtls->fin_time_expired)
-                    timeval_min(&tv, &dtls->fin_time);
+            if(dtls) {
+                timeval_min(&tv, &neigh->buf.timeout);
+                if(dtls->has_timer) {
+                    if(!dtls->int_time_expired)
+                        timeval_min(&tv, &dtls->int_time);
+                    if(!dtls->fin_time_expired)
+                        timeval_min(&tv, &dtls->fin_time);
+                }
             }
         }
         FD_ZERO(&readfds);
@@ -790,7 +792,7 @@ main(int argc, char **argv)
 
         FOR_ALL_NEIGHBOURS(neigh) {
             struct dtls *dtls = neigh->buf.dtls;
-            if(dtls->has_timer) {
+            if(dtls && dtls->has_timer) {
                 if(!dtls->int_time_expired &&
                    timeval_compare(&now, &dtls->int_time) >= 0) {
                     dtls->int_time_expired = 1;
