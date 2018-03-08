@@ -372,6 +372,9 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
         return;
     }
 
+    neigh = find_neighbour(from, ifp);
+    dtls = neigh->buf.dtls;
+
     /* allow unencrypted packets */
     if(packet[0] == 42) {
         fprintf(stderr, "dtls_parse_packet: "
@@ -379,9 +382,6 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
         parse_packet(from, ifp, packet, packetlen);
         return;
     }
-
-    neigh = find_neighbour(from, ifp);
-    dtls = neigh->buf.dtls;
 
     /* set the buffers so we can read them in the callbacks */
     dtls->packet = packet;
