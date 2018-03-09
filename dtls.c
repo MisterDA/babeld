@@ -299,6 +299,7 @@ dtls_setup_neighbour(struct neighbour *neigh)
         perror("malloc(neighbour->buf.dtls)");
         return 1;
     }
+    neigh->buf.dtls = dtls;
 
     mbedtls_ssl_init(&dtls->ssl);
     mbedtls_ssl_set_timer_cb(&dtls->ssl, &neigh,
