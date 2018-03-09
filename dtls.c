@@ -302,7 +302,7 @@ dtls_setup_neighbour(struct neighbour *neigh)
     neigh->buf.dtls = dtls;
 
     mbedtls_ssl_init(&dtls->ssl);
-    mbedtls_ssl_set_timer_cb(&dtls->ssl, &neigh,
+    mbedtls_ssl_set_timer_cb(&dtls->ssl, neigh,
                              dtls_cb_set_timer,
                              dtls_cb_get_timer);
     mbedtls_ssl_set_bio(&dtls->ssl, neigh,
