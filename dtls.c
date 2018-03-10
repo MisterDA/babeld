@@ -362,7 +362,7 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
     if(packet[0] == 42) {
         fprintf(stderr, "dtls_parse_packet: "
                 "received unencrypted packet.\n");
-        parse_packet(from, ifp, packet, packetlen);
+        parse_packet(from, ifp, packet, packetlen, 0);
         return;
     }
 
@@ -388,7 +388,7 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
                 goto flush;
             }
         } else {
-            parse_packet(from, ifp, dtls_buffer, rc);
+            parse_packet(from, ifp, dtls_buffer, rc, 1);
         }
     } else {
         rc = mbedtls_ssl_handshake(&dtls->ssl);

@@ -693,7 +693,7 @@ main(int argc, char **argv)
                                               ifp, receive_buffer, rc);
                         } else {
                             parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
-                                         receive_buffer, rc);
+                                         receive_buffer, rc, 0);
                         }
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);

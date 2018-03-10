@@ -430,7 +430,8 @@ network_address(int ae, const unsigned char *a, unsigned int len,
 
 void
 parse_packet(const unsigned char *from, struct interface *ifp,
-             const unsigned char *packet, int packetlen)
+             const unsigned char *packet, int packetlen,
+             int is_secure)
 {
     int i;
     const unsigned char *message;
