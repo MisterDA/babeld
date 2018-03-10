@@ -88,31 +88,7 @@ dtls_init(void)
     mbedtls_entropy_init(&dtls_entropy);
     mbedtls_ctr_drbg_init(&dtls_ctr_drbg);
 
-#ifndef USE_MBEDTLS_TEST_CERTS
-    rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cert_file);
-    if(rc) {
-        print_mbedtls_err("mbedtls_x509_crt_parse_file cert_file", rc);
-        goto fail;
-    }
-
-    if(dtls_cacert_file) {
-        rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cacert_file);
-        if(rc) {
-            print_mbedtls_err("mbedtls_x509_crt_parse cacert_file", rc);
-            goto fail;
-        }
-    } else {
-        fprintf(stderr, "No CA certificate was given.\n");
-    }
-
-    /* FIXME: ask user for password? */
-    rc = mbedtls_pk_parse_keyfile(&dtls_pkey, dtls_prvtkey_file,
-                                  dtls_prvtkey_password);
-    if(rc) {
-        print_mbedtls_err("mbedtls_pk_parse_keyfile", rc);
-        goto fail;
-    }
-#else
+#ifdef USE_MBEDTLS_TEST_CERTS
     rc = mbedtls_x509_crt_parse(&dtls_srvcert,
                                 (const unsigned char *)mbedtls_test_srv_crt,
                                 mbedtls_test_srv_crt_len);
@@ -135,6 +111,30 @@ dtls_init(void)
                               NULL, 0);
     if(rc) {
         print_mbedtls_err("mbedtls_pk_parse_key", rc);
+        goto fail;
+    }
+#else
+    rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cert_file);
+    if(rc) {
+        print_mbedtls_err("mbedtls_x509_crt_parse_file cert_file", rc);
+        goto fail;
+    }
+
+    if(dtls_cacert_file) {
+        rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cacert_file);
+        if(rc) {
+            print_mbedtls_err("mbedtls_x509_crt_parse cacert_file", rc);
+            goto fail;
+        }
+    } else {
+        fprintf(stderr, "No CA certificate was given.\n");
+    }
+
+    /* FIXME: ask user for password? */
+    rc = mbedtls_pk_parse_keyfile(&dtls_pkey, dtls_prvtkey_file,
+                                  dtls_prvtkey_password);
+    if(rc) {
+        print_mbedtls_err("mbedtls_pk_parse_keyfile", rc);
         goto fail;
     }
 #endif
@@ -341,24 +341,6 @@ dtls_flush_neighbour(struct neighbour *neigh)
     mbedtls_ssl_free(&neigh->buf.dtls->ssl);
 }
 
-static int
-dtls_client_verify(mbedtls_ssl_context *ssl)
-{
-    uint32_t flags;
-    flags = mbedtls_ssl_get_verify_result(ssl);
-    if(flags != 0) {
-        char buf[512];
-        mbedtls_x509_crt_verify_info(buf, sizeof(buf), NULL, flags);
-        fprintf(stderr, "mbedtls_ssl_get_verify_result: %s\n", buf);
-#ifdef USE_MBEDTLS_TEST_CERTS
-        return 0;
-#else
-        return -1;
-#endif
-    }
-    return 0;
-}
-
 void
 dtls_parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen)
@@ -390,18 +372,12 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
     dtls->has_data = 1;
 
     if(dtls->ssl.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
-        if(dtls->ssl.conf->endpoint == MBEDTLS_SSL_IS_CLIENT) {
-            rc = dtls_client_verify(&dtls->ssl);
-            if(rc)
-                goto flush;
-        }
-
         rc = mbedtls_ssl_read(&dtls->ssl, dtls_buffer, dtls_buflen);
         if(rc <= 0) {
             switch(rc) {
             case MBEDTLS_ERR_SSL_WANT_WRITE:
             case MBEDTLS_ERR_SSL_WANT_READ:
-                /* goto flush ? */
+                print_mbedtls_err("mbedtls_ssl_read", rc);
                 return;
             case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
                 goto close_notify;
@@ -417,9 +393,12 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
     } else {
         rc = mbedtls_ssl_handshake(&dtls->ssl);
         if(rc == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
+            /* we just need to reset/free the context */
+            print_mbedtls_err("mbedtls_ssl_handshake", rc);
             goto flush;
         } else if(rc != MBEDTLS_ERR_SSL_WANT_READ &&
-                  rc != MBEDTLS_ERR_SSL_WANT_WRITE && rc) {
+                  rc != MBEDTLS_ERR_SSL_WANT_WRITE &&
+                  rc) {
             print_mbedtls_err("mbedtls_ssl_handshake", rc);
             goto flush;
         }
