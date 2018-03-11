@@ -358,14 +358,6 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
     neigh = find_neighbour(from, ifp);
     dtls = neigh->buf.dtls;
 
-    /* allow unencrypted packets */
-    if(packet[0] == 42) {
-        fprintf(stderr, "dtls_parse_packet: "
-                "received unencrypted packet.\n");
-        parse_packet(from, ifp, packet, packetlen, 0);
-        return;
-    }
-
     /* set the buffers so we can read them in the callbacks */
     dtls->packet = packet;
     dtls->packetlen = packetlen;
@@ -400,7 +392,7 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
                   rc != MBEDTLS_ERR_SSL_WANT_WRITE &&
                   rc) {
             print_mbedtls_err("mbedtls_ssl_handshake", rc);
-            goto flush;
+            parse_packet(from, ifp, dtls_buffer, rc, 0);
         }
     }
 

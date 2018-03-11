@@ -46,6 +46,7 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
+    char dtls;
     int channel;
     int enable_timestamps;
     int rfc6126;
@@ -72,6 +73,8 @@ struct interface_conf {
 #define IF_FARAWAY (1 << 4)
 /* Send most TLVs over unicast. */
 #define IF_UNICAST (1 << 5)
+/* Send all unicast packets over DTLS. */
+#define IF_DTLS (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0

@@ -688,7 +688,7 @@ main(int argc, char **argv)
                     if(!if_up(ifp))
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
-                        if(is_unicast) {
+                        if(is_unicast && (ifp->flags & IF_DTLS) != 0) {
                             dtls_parse_packet((unsigned char*)&sin6.sin6_addr,
                                               ifp, receive_buffer, rc);
                         } else {
