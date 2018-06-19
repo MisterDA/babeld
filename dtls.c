@@ -373,8 +373,9 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
                 return;
             case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
                 goto close_notify;
-            case 0:
             case MBEDTLS_ERR_SSL_CLIENT_RECONNECT:
+
+                break;
             default:
                 print_mbedtls_err("mbedtls_ssl_read", rc);
                 goto flush;

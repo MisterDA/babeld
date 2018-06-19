@@ -2,7 +2,7 @@ PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
 CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter \
-              -DMBEDTLS_DEBUG_C -DUSE_MBEDTLS_TEST_CERTS
+              -DMBEDTLS_DEBUG_C
 
 DEFINES = $(PLATFORM_DEFINES)
 
