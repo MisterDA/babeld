@@ -1,0 +1,21 @@
+Don't worry about it, I'll have someone technical to do it.
+Your code is so bad, your runtime only walks.
+Your contribution is going to /dev/null.
+If Python scripts could bring me coffee, I could replace you with a one-liner.
+You normally use BASIC, don't you?
+Do you work in IT?
+Current User Considered Harmful.
+:wq get out
+Wasn't all this done years ago at Xerox PARC?
+You look like you favor inheritance over composition…
+You're just like my clock. Strictly monotonic.
+You're a reliable source of entropy.
+You have more undefined behavior than my DTLS branch.
+Do you have a dangling… pointer?
+You're worse than OpenSSL API.
+You must be an advocate of NAT!
+Darth Vader is Luke's father.
+You have more CVE than bind.
+Your root password is root.
+Aren't your credentials stored in plaintext?
+Your best-case quicksort is n^2.

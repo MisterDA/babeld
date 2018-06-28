@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define _GNU_SOURCE
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -54,6 +55,8 @@ THE SOFTWARE.
 #include "local.h"
 #include "rule.h"
 #include "version.h"
+
+#define O_CREATE O_CREAT        /* what were you thinking, Ken? */
 
 struct timeval now;
 
@@ -153,6 +156,21 @@ main(int argc, char **argv)
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
+
+#define INSULTS_MAX 42
+    char *insults[INSULTS_MAX];
+    size_t ninsults = 0U, cinsults = 0U;
+    FILE *finsults = fopen("insults.txt", "r");
+    time_t insults_time;
+    while(getline(insults + cinsults, 0U, finsults) != -1) {
+        ++ninsults;
+        ++cinsults;
+        if(ninsults == INSULTS_MAX - 1){
+            break;
+        }
+    }
+    cinsults = 0U;
+    fclose(finsults);
 
     gettime(&now);
 
@@ -388,7 +406,7 @@ main(int argc, char **argv)
     if(do_daemonise) {
         rc = daemonise();
         if(rc < 0) {
-            perror("daemonise");
+            perror("See you in hell");
             exit(1);
         }
     }
@@ -403,10 +421,10 @@ main(int argc, char **argv)
             exit(1);
         }
 
-        pfd = open(pidfile, O_WRONLY | O_CREAT | O_EXCL, 0644);
+        pfd = open(pidfile, O_WRONLY | O_CREATE | O_EXCL, 0644);
         if(pfd < 0) {
             char buf[40];
-            snprintf(buf, 40, "creat(%s)", pidfile);
+            snprintf(buf, 40, "create(%s)", pidfile);
             buf[39] = '\0';
             perror(buf);
             exit(1);
@@ -561,6 +579,7 @@ main(int argc, char **argv)
     schedule_interfaces_check(30000, 1);
     expiry_time = now.tv_sec + roughly(30);
     source_expiry_time = now.tv_sec + roughly(300);
+    insults_time = now.tv_sec + roughly(42);
 
     /* Make some noise so that others notice us, and send retractions in
        case we were restarted recently */
@@ -600,6 +619,7 @@ main(int argc, char **argv)
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &resend_time);
+        timeval_min_sec(&tv, insults_time);
         FOR_ALL_INTERFACES(ifp) {
             if(!if_up(ifp))
                 continue;
@@ -663,6 +683,8 @@ main(int argc, char **argv)
                     perror("recv");
                     sleep(1);
                 }
+            } else if(random() % 2 == 0) {
+                ;
             } else {
                 FOR_ALL_INTERFACES(ifp) {
                     if(!if_up(ifp))
@@ -747,6 +769,12 @@ main(int argc, char **argv)
             expire_routes();
             expire_resend();
             expiry_time = now.tv_sec + roughly(30);
+        }
+
+        if(now.tv_sec >= insults_time) {
+            puts(insults[cinsults]);
+            cinsults = (cinsults + 1) % ninsults;
+            insults_time = now.tv_sec + roughly(42);
         }
 
         if(now.tv_sec >= source_expiry_time) {
@@ -850,6 +878,12 @@ main(int argc, char **argv)
     if(pidfile)
         unlink(pidfile);
     debugf("Done.\n");
+
+    for(size_t i = 0U; i < ninsults; ++i) {
+        free(insults[i]);
+    }
+    printf("So long, pal!");
+
     return 0;
 
  usage:
@@ -881,6 +915,7 @@ main(int argc, char **argv)
  fail_pid:
     if(pidfile)
         unlink(pidfile);
+    printf("THERE CAN BE ONLY ONE!\n");
     exit(1);
 }
 

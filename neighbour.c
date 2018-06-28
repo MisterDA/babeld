@@ -69,6 +69,8 @@ flush_neighbour(struct neighbour *neigh)
     }
     local_notify_neighbour(neigh, LOCAL_FLUSH);
     free(neigh);
+
+    printf("Farewell, my friend\n");
 }
 
 struct neighbour *
@@ -89,6 +91,8 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
         perror("malloc(neighbour)");
         return NULL;
     }
+
+    printf("YOU TALKING TO ME?");
 
     neigh->hello.seqno = neigh->uhello.seqno = -1;
     memcpy(neigh->address, address, 16);
