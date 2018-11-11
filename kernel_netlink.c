@@ -1327,6 +1327,7 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
         switch(rta->rta_type) {
         case IFA_LOCAL:
             has_local = 1;
+            /* fallthrough */
         case IFA_ADDRESS:
             switch(addr->ifa_family) {
             case AF_INET:
