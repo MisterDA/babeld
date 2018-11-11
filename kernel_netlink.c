@@ -361,7 +361,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         kdebugf("Netlink message: ");
 
         for(nh = (struct nlmsghdr *)buf;
-            NLMSG_OK(nh, len);
+            NLMSG_OK(nh, (unsigned int)len);
             nh = NLMSG_NEXT(nh, len)) {
             kdebugf("%s{seq:%d}", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "",
                     nh->nlmsg_seq);
@@ -459,7 +459,7 @@ netlink_talk(struct nlmsghdr *nh)
         }
     }
 
-    if(rc < nh->nlmsg_len) {
+    if((unsigned int)rc < nh->nlmsg_len) {
         int saved_errno = errno;
         perror("sendmsg");
         errno = saved_errno;
@@ -517,7 +517,7 @@ netlink_send_dump(int type, void *data, int len) {
             nl_command.seqno, (void*)&nl_command.seqno);
 
     rc = sendmsg(nl_command.sock, &msg, 0);
-    if(rc < buf.nh.nlmsg_len) {
+    if((unsigned int)rc < buf.nh.nlmsg_len) {
         int saved_errno = errno;
         perror("sendmsg");
         errno = saved_errno;
@@ -1464,7 +1464,7 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
 
     kdebugf("filter_rules: from %s prio %d table %d\n",
             format_prefix(rule->src, rule->src_plen),
-            has_priority ? rule->priority : -1, rule->table);
+            has_priority ? (int)rule->priority : -1, rule->table);
 
     if(!has_priority || !has_table)
         return 0;
