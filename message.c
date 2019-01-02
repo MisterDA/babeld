@@ -146,7 +146,7 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 1 >= alen)
             goto fail;
         len = a[i + 1];
         if(i + len + 2 > alen)
@@ -185,7 +185,7 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
     return 1;
 
  fail:
-    fprintf(stderr, "Received truncated sub-TLV on Update.\n");
+    //fprintf(stderr, "Received truncated sub-TLV on Update.\n");
     return -1;
 }
 
@@ -203,13 +203,13 @@ parse_hello_subtlv(const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
+        if(i + 1 >= alen) {
+            //fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
             return -1;
         }
         len = a[i + 1];
         if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
+            //fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
             return -1;
         }
 
@@ -220,8 +220,8 @@ parse_hello_subtlv(const unsigned char *a, int alen,
                 DO_NTOHL(timestamp, a + i + 2);
                 have_timestamp = 1;
             } else {
-                fprintf(stderr,
-                        "Received incorrect RTT sub-TLV on Hello.\n");
+                //fprintf(stderr,
+                 //       "Received incorrect RTT sub-TLV on Hello.\n");
                 /* But don't break. */
             }
         } else {
@@ -257,14 +257,14 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
+        if(i + 1 >= alen) {
+            // fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
 
         len = a[i + 1];
         if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
+            // fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
 
@@ -276,8 +276,8 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
                 DO_NTOHL(timestamp2, a + i + 6);
                 have_timestamp = 1;
             } else {
-                fprintf(stderr,
-                        "Received incorrect RTT sub-TLV on IHU.\n");
+                // fprintf(stderr,
+                        // "Received incorrect RTT sub-TLV on IHU.\n");
                 /* But don't break. */
             }
         } else {
@@ -314,7 +314,7 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 1 >= alen)
             goto fail;
 
         len = a[i + 1];
@@ -350,7 +350,7 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
     return 1;
 
  fail:
-    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    //fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
     return -1;
 }
 
@@ -367,7 +367,7 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 1 >= alen)
             goto fail;
         len = a[i + 1];
         if(i + len + 2 > alen)
@@ -377,7 +377,8 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
             /* Nothing to do. */
         } else if(type == SUBTLV_SOURCE_PREFIX) {
             int rc;
-            if(len < 1)
+
+            if(len <= 2)
                 goto fail;
             *src_plen = a[i + 2];
             rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
@@ -397,7 +398,7 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
     }
     return 1;
  fail:
-    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    // fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
     return -1;
 }
 
@@ -413,7 +414,7 @@ parse_other_subtlv(const unsigned char *a, int alen)
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 1 >= alen)
             goto fail;
         len = a[i + 1];
         if(i + len > alen)
@@ -428,7 +429,7 @@ parse_other_subtlv(const unsigned char *a, int alen)
     }
     return 1;
  fail:
-    fprintf(stderr, "Received truncated sub-TLV.\n");
+    // fprintf(stderr, "Received truncated sub-TLV.\n");
     return -1;
 }
 
@@ -462,35 +463,35 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if(!linklocal(from)) {
-        fprintf(stderr, "Received packet from non-local address %s.\n",
-                format_address(from));
+        //fprintf(stderr, "Received packet from non-local address %s.\n",
+        //        format_address(from));
         return;
     }
 
     if(packet[0] != 42) {
-        fprintf(stderr, "Received malformed packet on %s from %s.\n",
-                ifp->name, format_address(from));
+        // fprintf(stderr, "Received malformed packet on %s from %s.\n",
+        //        ifp->name, format_address(from));
         return;
     }
 
     if(packet[1] != 2) {
-        fprintf(stderr,
-                "Received packet with unknown version %d on %s from %s.\n",
-                packet[1], ifp->name, format_address(from));
+        //fprintf(stderr,
+        //        "Received packet with unknown version %d on %s from %s.\n",
+        //        packet[1], ifp->name, format_address(from));
         return;
     }
 
-    neigh = find_neighbour(from, ifp);
-    if(neigh == NULL) {
-        fprintf(stderr, "Couldn't allocate neighbour.\n");
-        return;
-    }
+  //  neigh = find_neighbour(from, ifp);
+  //  if(neigh == NULL) {
+  //      // fprintf(stderr, "Couldn't allocate neighbour.\n");
+  //      return;
+  //  }
 
     DO_NTOHS(bodylen, packet + 2);
 
     if(bodylen + 4 > packetlen) {
-        fprintf(stderr, "Received truncated packet (%d + 4 > %d).\n",
-                bodylen, packetlen);
+       //fprintf(stderr, "Received truncated packet (%d + 4 > %d).\n",
+       //         bodylen, packetlen);
         bodylen = packetlen - 4;
     }
 
@@ -504,13 +505,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             i++;
             continue;
         }
-        if(i + 1 > bodylen) {
-            fprintf(stderr, "Received truncated message.\n");
+        if(i + 1 >= bodylen) {
+            // fprintf(stderr, "Received truncated message.\n");
             break;
         }
         len = message[1];
         if(i + len + 2 > bodylen) {
-            fprintf(stderr, "Received truncated message.\n");
+            // fprintf(stderr, "Received truncated message.\n");
             break;
         }
 
@@ -528,7 +529,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             rc = parse_other_subtlv(message + 8, len - 6);
             if(rc < 0)
                 goto done;
-            send_ack(neigh, nonce, interval);
+            // send_ack(neigh, nonce, interval);
         } else if(type == MESSAGE_ACK) {
             int rc;
             debugf("Received ack from %s on %s.\n",
@@ -553,19 +554,19 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                     &timestamp, &have_timestamp);
             if(rc < 0)
                 goto done;
-            changed =
-                update_neighbour(neigh,
-                                 unicast ? &neigh->uhello : &neigh->hello,
-                                 unicast, seqno, interval);
-            update_neighbour_metric(neigh, changed);
-            if(interval > 0)
-                /* Multiply by 3/2 to allow hellos to expire. */
-                schedule_neighbours_check(interval * 15, 0);
-            if(have_timestamp) {
-                neigh->hello_send_us = timestamp;
-                neigh->hello_rtt_receive_time = now;
-                have_hello_rtt = 1;
-            }
+            changed = 0;
+   //             update_neighbour(neigh,
+   //                              unicast ? &neigh->uhello : &neigh->hello,
+   //                              unicast, seqno, interval);
+   //       update_neighbour_metric(neigh, changed);
+   //         if(interval > 0)
+   //             /* Multiply by 3/2 to allow hellos to expire. */
+   //             schedule_neighbours_check(interval * 15, 0);
+   //         if(have_timestamp) {
+   //             neigh->hello_send_us = timestamp;
+   //             neigh->hello_rtt_receive_time = now;
+   //             have_hello_rtt = 1;
+   //         }
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -586,14 +587,14 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                       NULL);
                 if(rc < 0)
                     goto done;
-                changed = txcost != neigh->txcost;
-                neigh->txcost = txcost;
-                neigh->ihu_time = now;
-                neigh->ihu_interval = interval;
-                update_neighbour_metric(neigh, changed);
-                if(interval > 0)
-                    /* Multiply by 3/2 to allow neighbours to expire. */
-                    schedule_neighbours_check(interval * 45, 0);
+          //      changed = txcost != neigh->txcost;
+    //            neigh->txcost = txcost;
+    //            neigh->ihu_time = now;
+    //            neigh->ihu_interval = interval;
+    //            update_neighbour_metric(neigh, changed);
+    //            if(interval > 0)
+    //                /* Multiply by 3/2 to allow neighbours to expire. */
+    //                schedule_neighbours_check(interval * 45, 0);
             }
         } else if(type == MESSAGE_ROUTER_ID) {
             int rc;
@@ -694,7 +695,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 have_router_id = 1;
             }
             if(!have_router_id && message[2] != 0) {
-                fprintf(stderr, "Received prefix with no router id.\n");
+                // fprintf(stderr, "Received prefix with no router id.\n");
                 goto fail;
             }
             debugf("Received update%s%s for %s from %s on %s.\n",
@@ -707,11 +708,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 if(rc < 0)
                     goto done;
                 if(metric < 0xFFFF) {
-                    fprintf(stderr,
-                            "Received wildcard update with finite metric.\n");
+                    // fprintf(stderr,
+                         //   "Received wildcard update with finite metric.\n");
                     goto done;
                 }
-                retract_neighbour_routes(neigh);
+                //retract_neighbour_routes(neigh);
                 goto done;
             } else if(message[2] == 1) {
                 if(!have_v4_nh)
@@ -720,7 +721,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             } else if(have_v6_nh) {
                 nh = v6_nh;
             } else {
-                nh = neigh->address;
+                //nh = neigh->address;
             }
 
             rc = parse_update_subtlv(ifp, metric, message[2],
@@ -743,9 +744,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     goto done;
             }
 
-            update_route(router_id, prefix, plen, src_prefix, src_plen, seqno,
-                         metric, interval, neigh, nh,
-                         channels, channels_len);
+     //       update_route(router_id, prefix, plen, src_prefix, src_plen, seqno,
+     //                    metric, interval, neigh, nh,
+     //                    channels, channels_len);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
             int rc, is_ss;
@@ -769,30 +770,30 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(message[2] == 0) {
                 if(is_ss) {
                     /* Wildcard requests don't carry a source prefix. */
-                    fprintf(stderr,
-                            "Received source-specific wildcard request.\n");
+                    // fprintf(stderr,
+                            ////  "Received source-specific wildcard request.\n");
                     goto done;
                 }
                 debugf("Received request for any from %s on %s.\n",
                        format_address(from), ifp->name);
                 /* If a neighbour is requesting a full route dump from us,
                    we might as well send it an IHU. */
-                send_ihu(neigh, NULL);
+      //          send_ihu(neigh, NULL);
                 /* Since nodes send wildcard requests on boot, booting
                    a large number of nodes at the same time may cause an
                    update storm.  Ignore a wildcard request that happens
                    shortly after we sent a full update. */
-                if(neigh->ifp->last_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1)) {
-                    send_update(neigh->ifp, 0, NULL, 0, NULL, 0);
-                }
+      //          if(neigh->ifp->last_update_time <
+      //             now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1)) {
+      //              send_update(neigh->ifp, 0, NULL, 0, NULL, 0);
+      //          }
             } else {
                 debugf("Received request for dst %s%s%s from %s on %s.\n",
                        message[2] == 0 ? "" : format_prefix(prefix, plen),
                        is_ss ? " src " : "",
                        is_ss ? format_prefix(src_prefix, src_plen) : "",
                        format_address(from), ifp->name);
-                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
+       //         send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
             }
         } else if(type == MESSAGE_MH_REQUEST) {
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
@@ -825,8 +826,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    is_ss ? format_prefix(src_prefix, src_plen) : "",
                    format_address(from), ifp->name,
                    format_eui64(message + 8), seqno);
-            handle_request(neigh, prefix, plen, src_prefix, src_plen,
-                           message[6], seqno, message + 8);
+        //    handle_request(neigh, prefix, plen, src_prefix, src_plen,
+        //                   message[6], seqno, message + 8);
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
@@ -836,48 +837,48 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         continue;
 
     fail:
-        fprintf(stderr, "Couldn't parse packet (%d, %d) from %s on %s.\n",
-                message[0], message[1], format_address(from), ifp->name);
+        // fprintf(stderr, "Couldn't parse packet (%d, %d) from %s on %s.\n",
+                // message[0], message[1], format_address(from), ifp->name);
         goto done;
     }
 
     /* We can calculate the RTT to this neighbour. */
-    if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
-        int remote_waiting_us, local_waiting_us;
-        unsigned int rtt, smoothed_rtt;
-        unsigned int old_rttcost;
-        int changed = 0;
-        remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
-        local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
-            hello_send_us;
+ //   if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
+ //       int remote_waiting_us, local_waiting_us;
+ //       unsigned int rtt, smoothed_rtt;
+ //       unsigned int old_rttcost;
+ //       int changed = 0;
+ //       remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
+ //       local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
+ //           hello_send_us;
 
-        /* Sanity checks (validity window of 10 minutes). */
-        if(remote_waiting_us < 0 || local_waiting_us < 0 ||
-           remote_waiting_us > 600000000 || local_waiting_us > 600000000)
-            return;
+ //       /* Sanity checks (validity window of 10 minutes). */
+ //       if(remote_waiting_us < 0 || local_waiting_us < 0 ||
+ //          remote_waiting_us > 600000000 || local_waiting_us > 600000000)
+ //           return;
 
-        rtt = MAX(0, local_waiting_us - remote_waiting_us);
-        debugf("RTT to %s on %s sample result: %d us.\n",
-               format_address(from), ifp->name, rtt);
+ //       rtt = MAX(0, local_waiting_us - remote_waiting_us);
+ //       debugf("RTT to %s on %s sample result: %d us.\n",
+ //              format_address(from), ifp->name, rtt);
 
-        old_rttcost = neighbour_rttcost(neigh);
-        if(valid_rtt(neigh)) {
-            /* Running exponential average. */
-            smoothed_rtt = (ifp->rtt_decay * rtt +
-                            (256 - ifp->rtt_decay) * neigh->rtt);
-            /* Rounding (up or down) to get closer to the sample. */
-            neigh->rtt = (neigh->rtt >= rtt) ? smoothed_rtt / 256 :
-                (smoothed_rtt + 255) / 256;
-        } else {
-            /* We prefer to be conservative with new neighbours
-               (higher RTT) */
-            assert(rtt <= 0x7FFFFFFF);
-            neigh->rtt = 2*rtt;
-        }
-        changed = (neighbour_rttcost(neigh) == old_rttcost ? 0 : 1);
-        update_neighbour_metric(neigh, changed);
-        neigh->rtt_time = now;
-    }
+ //       old_rttcost = neighbour_rttcost(neigh);
+ //       if(valid_rtt(neigh)) {
+ //           /* Running exponential average. */
+ //           smoothed_rtt = (ifp->rtt_decay * rtt +
+ //                           (256 - ifp->rtt_decay) * neigh->rtt);
+ //           /* Rounding (up or down) to get closer to the sample. */
+ //           neigh->rtt = (neigh->rtt >= rtt) ? smoothed_rtt / 256 :
+ //               (smoothed_rtt + 255) / 256;
+ //       } else {
+ //           /* We prefer to be conservative with new neighbours
+ //              (higher RTT) */
+ //           assert(rtt <= 0x7FFFFFFF);
+ //           neigh->rtt = 2*rtt;
+ //       }
+ //       changed = (neighbour_rttcost(neigh) == old_rttcost ? 0 : 1);
+ //       update_neighbour_metric(neigh, changed);
+ //       neigh->rtt_time = now;
+ //   }
     return;
 }
 
@@ -895,9 +896,9 @@ fill_rtt_message(struct buffered *buf, struct interface *ifp)
             DO_HTONL(buf->buf + buf->hello + 10, time);
             return 1;
         } else {
-            fprintf(stderr,
-                    "No space left for timestamp sub-TLV "
-                    "(this shouldn't happen)\n");
+            // fprintf(stderr,
+            //        "No space left for timestamp sub-TLV "
+            //        "(this shouldn't happen)\n");
             return -1;
         }
     }
@@ -1502,7 +1503,7 @@ send_update(struct interface *ifp, int urgent,
             }
             route_stream_done(routes);
         } else {
-            fprintf(stderr, "Couldn't allocate route stream.\n");
+            // fprintf(stderr, "Couldn't allocate route stream.\n");
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         ifp->last_update_time = now.tv_sec;
@@ -1599,7 +1600,7 @@ send_self_update(struct interface *ifp)
         }
         xroute_stream_done(xroutes);
     } else {
-        fprintf(stderr, "Couldn't allocate xroute stream.\n");
+        // fprintf(stderr, "Couldn't allocate xroute stream.\n");
     }
 }
 

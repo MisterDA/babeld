@@ -1,11 +1,16 @@
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
-CDEBUGFLAGS = -Os -g -Wall
+CC = clang-7
+
+#CLANG_FUZZ = -O2 -fsanitize=fuzzer,address
+CLANG_FUZZ = -fsanitize=address
+
+CDEBUGFLAGS = -O0 -g -Wall
 
 DEFINES = $(PLATFORM_DEFINES)
 
-CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
+CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES) $(CLANG_FUZZ)
 
 LDLIBS = -lrt
 

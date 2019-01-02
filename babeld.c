@@ -143,7 +143,7 @@ kernel_rule_notify(struct kernel_rule *rule, void *closure)
 }
 
 int
-main(int argc, char **argv)
+j_main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
     int rc, fd, i, opt;
@@ -1187,4 +1187,49 @@ reopen_logfile()
         close(lfd);
 
     return 1;
+}
+
+void test_one_input(const uint8_t *data, size_t size) {
+    size_t from_size = sizeof(struct in6_addr);
+
+    // printf("test input: size = %d - %d\n", (int)size, (int)from_size);
+
+    if (size < from_size+4) {
+        return;
+    }
+    const unsigned char *from = data;
+    data = data + from_size;
+
+    struct interface ifp = {};
+    ifp.buf.size = 1000;
+    parse_packet(from, &ifp, data, size - from_size);
+}
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+    debug = 0;
+    test_one_input(data, size);
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    FILE *file;
+    int filelen;
+    uint8_t *buffer;
+
+    if (argc < 2) {
+        printf("error: no argument");
+        return 0;
+    }
+
+    file = fopen(argv[1], "r");
+    fseek(file, 0, SEEK_END);
+    filelen = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    buffer = malloc(filelen);
+    fread(buffer, 1, filelen, file);
+
+    test_one_input(buffer, filelen);
+
+    return 0;
 }

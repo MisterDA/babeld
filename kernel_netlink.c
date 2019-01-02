@@ -955,7 +955,7 @@ kernel_route(int operation, int table,
     int rc, ipv4, use_src = 0;
 
     if(!nl_setup) {
-        fprintf(stderr,"kernel_route: netlink not initialized.\n");
+//        fprintf(stderr,"kernel_route: netlink not initialized.\n");
         errno = EIO;
         return -1;
     }

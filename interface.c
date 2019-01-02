@@ -152,7 +152,7 @@ update_jitter(struct interface *ifp, int urgent)
 void
 set_timeout(struct timeval *timeout, int msecs)
 {
-    timeval_add_msec(timeout, &now, roughly(msecs));
+    // timeval_add_msec(timeout, &now, roughly(msecs));
 }
 
 static int
