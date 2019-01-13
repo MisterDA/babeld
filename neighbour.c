@@ -39,6 +39,11 @@ THE SOFTWARE.
 #include "resend.h"
 #include "local.h"
 
+#ifdef USE_DTLS
+#include <mbedtls/ssl.h>
+#include "dtls.h"
+#endif
+
 struct neighbour *neighs = NULL;
 
 static struct neighbour *
@@ -68,6 +73,15 @@ flush_neighbour(struct neighbour *neigh)
         previous->next = neigh->next;
     }
     local_notify_neighbour(neigh, LOCAL_FLUSH);
+
+#ifdef USE_DTLS
+    /* The draft reads "The node SHOULD send a DTLS close_notify alert
+       to the neighbour if it believes the link is still viable."  I
+       believe that the link is not viable, therefore I don’t send a
+       close_notify_alert. */
+    if(neigh->buf.dtls != NULL)
+        dtls_flush_neighbour(neigh);
+#endif
     free(neigh->buf.buf);
     free(neigh);
 }
@@ -114,9 +128,39 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     memcpy(&neigh->buf.sin6.sin6_addr, address, 16);
     neigh->buf.sin6.sin6_port = htons(protocol_port);
     neigh->buf.sin6.sin6_scope_id = ifp->ifindex;
+
+#ifdef USE_DTLS
+    neigh->buf.dtls = NULL;
+    if(ifp->flags & IF_DTLS) {
+        neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
+        rc = dtls_setup_neighbour(neigh);
+        if(rc) {
+            free(buf);
+            free(neigh);
+            return NULL;
+        }
+    }
+#endif
+
     neigh->next = neighs;
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);
+
+#ifdef USE_DTLS
+    if(ifp->flags & IF_DTLS) {
+        /* At that point, if the current node identifies as a server,
+           dtls_handshake is a no-op. */
+        rc = dtls_handshake(neigh);
+        if(rc) {
+            /* FIXME: first step of handshaking has failed.  Do we do
+               something special? */
+            fprintf(stderr, "DTLS: first step of handshake has failed.\n");
+            flush_neighbour(neigh);
+            return NULL;
+        }
+    }
+#endif
+
     return neigh;
 }
 

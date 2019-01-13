@@ -9,6 +9,8 @@ and redistribution of routes from other routing protocols.
 Installation
 ============
 
+[Babel-over-DTLS][1] support requires [mbedTLS][2] 2.16.
+
     $ make
     $ su -c 'make install'
 
@@ -108,5 +110,8 @@ interface addresses) you advertise:
     # babeld -C 'redistribute local if eth1' -C 'redistribute local deny' \
              -C 'redistribute metric 128' \
              eth1
+
+[1]: https://datatracker.ietf.org/doc/draft-ietf-babel-dtls/
+[2]: https://tls.mbed.org/
 
 -- Juliusz Chroboczek

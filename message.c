@@ -41,6 +41,11 @@ THE SOFTWARE.
 #include "message.h"
 #include "configuration.h"
 
+#ifdef USE_DTLS
+#include <mbedtls/ssl.h>
+#include "dtls.h"
+#endif
+
 unsigned char packet_header[4] = {42, 2};
 
 int split_horizon = 1;
@@ -441,7 +446,8 @@ network_address(int ae, const unsigned char *a, unsigned int len,
 
 void
 parse_packet(const unsigned char *from, struct interface *ifp,
-             const unsigned char *packet, int packetlen)
+             const unsigned char *packet, int packetlen,
+             int ignore)
 {
     int i;
     const unsigned char *message;
@@ -514,35 +520,14 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             break;
         }
 
-        if(type == MESSAGE_PADN) {
-            debugf("Received pad%d from %s on %s.\n",
-                   len, format_address(from), ifp->name);
-        } else if(type == MESSAGE_ACK_REQ) {
-            unsigned short nonce, interval;
-            int rc;
-            if(len < 6) goto fail;
-            DO_NTOHS(nonce, message + 4);
-            DO_NTOHS(interval, message + 6);
-            debugf("Received ack-req (%04X %d) from %s on %s.\n",
-                   nonce, interval, format_address(from), ifp->name);
-            rc = parse_other_subtlv(message + 8, len - 6);
-            if(rc < 0)
-                goto done;
-            send_ack(neigh, nonce, interval);
-        } else if(type == MESSAGE_ACK) {
-            int rc;
-            debugf("Received ack from %s on %s.\n",
-                   format_address(from), ifp->name);
-            rc = parse_other_subtlv(message + 4, len - 2);
-            if(rc < 0)
-                goto done;
-            /* Nothing right now */
-        } else if(type == MESSAGE_HELLO) {
+        if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
             int unicast, changed, have_timestamp, rc;
             unsigned int timestamp;
             if(len < 6) goto fail;
             unicast = !!(message[2] & 0x80);
+            if(ignore && unicast)
+                goto done;
             DO_NTOHS(seqno, message + 4);
             DO_NTOHS(interval, message + 6);
             debugf("Received hello %d (%d) from %s on %s.\n",
@@ -566,6 +551,34 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 neigh->hello_rtt_receive_time = now;
                 have_hello_rtt = 1;
             }
+        }
+
+        if(ignore)
+            goto done;
+
+        if(type == MESSAGE_PADN) {
+            debugf("Received pad%d from %s on %s.\n",
+                   len, format_address(from), ifp->name);
+        } else if(type == MESSAGE_ACK_REQ) {
+            unsigned short nonce, interval;
+            int rc;
+            if(len < 6) goto fail;
+            DO_NTOHS(nonce, message + 4);
+            DO_NTOHS(interval, message + 6);
+            debugf("Received ack-req (%04X %d) from %s on %s.\n",
+                   nonce, interval, format_address(from), ifp->name);
+            rc = parse_other_subtlv(message + 8, len - 6);
+            if(rc < 0)
+                goto done;
+            send_ack(neigh, nonce, interval);
+        } else if(type == MESSAGE_ACK) {
+            int rc;
+            debugf("Received ack from %s on %s.\n",
+                   format_address(from), ifp->name);
+            rc = parse_other_subtlv(message + 4, len - 2);
+            if(rc < 0)
+                goto done;
+            /* Nothing right now */
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -915,11 +928,25 @@ flushbuf(struct buffered *buf, struct interface *ifp)
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
+#ifdef USE_DTLS
+        if(buf->dtls != NULL) {
+            rc = dtls_send(packet_header, sizeof(packet_header),
+                           buf->buf, buf->len,
+                           buf->dtls);
+        } else {
+            rc = babel_send(protocol_socket,
+                            packet_header, sizeof(packet_header),
+                            buf->buf, buf->len,
+                            (struct sockaddr*)&buf->sin6,
+                            sizeof(buf->sin6));
+        }
+#else
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         buf->buf, buf->len,
                         (struct sockaddr*)&buf->sin6,
                         sizeof(buf->sin6));
+#endif
         if(rc < 0)
             perror("send");
     }

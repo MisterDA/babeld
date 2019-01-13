@@ -55,6 +55,11 @@ THE SOFTWARE.
 #include "rule.h"
 #include "version.h"
 
+#ifdef USE_DTLS
+#include <mbedtls/ssl.h>
+#include "dtls.h"
+#endif
+
 struct timeval now;
 
 unsigned char myid[8];
@@ -86,6 +91,10 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
+#ifdef USE_DTLS
+int dtls_protocol_port;
+int dtls_protocol_socket;
+#endif
 static int kernel_routes_changed = 0;
 static int kernel_rules_changed = 0;
 static int kernel_link_changed = 0;
@@ -153,6 +162,7 @@ main(int argc, char **argv)
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
+    int is_unicast;
 
     gettime(&now);
 
@@ -522,6 +532,14 @@ main(int argc, char **argv)
         goto fail;
     }
 
+#ifdef USE_DTLS
+    dtls_protocol_socket = babel_socket(dtls_protocol_port);
+    if(dtls_protocol_socket < 0) {
+        perror("Couldn't create link local socket");
+        goto fail;
+    }
+#endif
+
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
@@ -542,6 +560,12 @@ main(int argc, char **argv)
         goto fail;
     if(receive_buffer == NULL)
         goto fail;
+
+#ifdef USE_DTLS
+    rc = dtls_init();
+    if(rc)
+        goto fail;
+#endif
 
     check_interfaces();
 
@@ -621,6 +645,10 @@ main(int argc, char **argv)
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
             maxfd = MAX(maxfd, protocol_socket);
+#ifdef USE_DTLS
+            FD_SET(dtls_protocol_socket, &readfds);
+            maxfd = MAX(maxfd, dtls_protocol_socket);
+#endif
             if(kernel_socket < 0) kernel_setup_socket(1);
             if(kernel_socket >= 0) {
                 FD_SET(kernel_socket, &readfds);
@@ -664,7 +692,7 @@ main(int argc, char **argv)
             rc = babel_recv(protocol_socket,
                             receive_buffer, receive_buffer_size,
                             (struct sockaddr*)&sin6, sizeof(sin6),
-                            NULL);
+                            &is_unicast);
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
@@ -675,8 +703,23 @@ main(int argc, char **argv)
                     if(!if_up(ifp))
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
+#ifdef USE_DTLS
+                        /* We allow DTLS to be enabled per interface.
+                           If a packet is received on an interface
+                           where DTLS hasn’t been enabled, the packet
+                           is considered secure. */
+                        if(ifp->flags & IF_DTLS) {
+                            if(!is_unicast)
+                                parse_packet((unsigned char*)&sin6.sin6_addr,
+                                             ifp, receive_buffer, rc, 1);
+                        } else {
+                            parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
+                                         receive_buffer, rc, 0);
+                        }
+#else
                         parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
-                                     receive_buffer, rc);
+                                     receive_buffer, rc, 0);
+#endif
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);
                         break;
@@ -684,6 +727,36 @@ main(int argc, char **argv)
                 }
             }
         }
+
+#ifdef USE_DTLS
+        if(FD_ISSET(dtls_protocol_socket, &readfds)) {
+            rc = babel_recv(protocol_socket,
+                            receive_buffer, receive_buffer_size,
+                            (struct sockaddr*)&sin6, sizeof(sin6),
+                            &is_unicast);
+            if(rc < 0) {
+                if(errno != EAGAIN && errno != EINTR) {
+                    perror("recv");
+                    sleep(1);
+                }
+            } else {
+                FOR_ALL_INTERFACES(ifp) {
+                    if(!if_up(ifp))
+                        continue;
+                    if(ifp->ifindex == sin6.sin6_scope_id) {
+                        if(ifp->flags & IF_DTLS && is_unicast) {
+                            dtls_parse_packet(
+                                (unsigned char*)&sin6.sin6_addr,
+                                ifp, receive_buffer, rc);
+                        }
+                        VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
+                                                    receive_buffer_size);
+                        break;
+                    }
+                }
+            }
+        }
+#endif
 
         if(local_server_socket >= 0 && FD_ISSET(local_server_socket, &readfds))
            accept_local_connections();
@@ -834,6 +907,10 @@ main(int argc, char **argv)
     release_tables();
     kernel_setup_socket(0);
     kernel_setup(0);
+
+#ifdef USE_DTLS
+    dtls_free();
+#endif
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {

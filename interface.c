@@ -43,6 +43,11 @@ THE SOFTWARE.
 #include "local.h"
 #include "xroute.h"
 
+#ifdef USE_DTLS
+#include <mbedtls/ssl.h>
+#include "dtls.h"
+#endif
+
 struct interface *interfaces = NULL;
 
 static struct interface *
