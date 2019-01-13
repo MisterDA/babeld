@@ -1,24 +1,35 @@
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
-CDEBUGFLAGS = -Os -g -Wall
+USE_DTLS = yes
+ifeq ($(USE_DTLS), yes)
+DTLS_SRCS = dtls.c
+DTLS_OBJS = dtls.o
+DTLS_LDFLAGS = -Lmbedtls_build/library/
+DTLS_LDLIBS = -lmbedx509 -lmbedcrypto -lmbedtls
+DTLS_DEFINES = -DUSE_DTLS
+endif
 
-DEFINES = $(PLATFORM_DEFINES)
+CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter
+
+DEFINES = $(PLATFORM_DEFINES) $(DTLS_DEFINES)
 
 CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
-LDLIBS = -lrt
+LDFLAGS = $(DTLS_LDFLAGS)
+
+LDLIBS = -lrt $(DTLS_LDLIBS)
 
 SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
-       disambiguation.c rule.c
+       disambiguation.c rule.c $(DTLS_SRCS)
 
 OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        route.o xroute.o message.o resend.o configuration.o local.o \
-       disambiguation.o rule.o
+       disambiguation.o rule.o $(DTLS_OBJS)
 
 babeld: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
+	$(CC) $(LDFLAGS) -o babeld $(LDLIBS) $(OBJS)
 
 babeld.o: babeld.c version.h
 

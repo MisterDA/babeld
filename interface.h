@@ -79,6 +79,11 @@ struct interface_conf {
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
 
+#ifdef USE_DTLS
+/* Use Babel over DTLS on this interface. */
+#define IF_DTLS (1 << 6)
+#endif
+
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
 #define IF_CHANNEL_INTERFERING 255
@@ -100,6 +105,10 @@ struct buffered {
     /* Relative position of the Hello message in the send buffer, or
        (-1) if there is none. */
     int hello;
+
+#ifdef USE_DTLS
+    struct dtls *dtls;
+#endif
 };
 
 struct interface {

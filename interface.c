@@ -43,7 +43,13 @@ THE SOFTWARE.
 #include "local.h"
 #include "xroute.h"
 
+
 #define MIN_MTU 512
+
+#ifdef USE_DTLS
+#include <mbedtls/ssl.h>
+#include "dtls.h"
+#endif
 
 struct interface *interfaces = NULL;
 

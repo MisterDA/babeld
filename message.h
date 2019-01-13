@@ -50,7 +50,8 @@ extern int split_horizon;
 extern unsigned char packet_header[4];
 
 void parse_packet(const unsigned char *from, struct interface *ifp,
-                  const unsigned char *packet, int packetlen);
+                  const unsigned char *packet, int packetlen,
+                  int ignore);
 void flushbuf(struct buffered *buf, struct interface *ifp);
 void flushupdates(struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
