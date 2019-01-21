@@ -929,6 +929,8 @@ flushbuf(struct buffered *buf, struct interface *ifp)
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
 #ifdef USE_DTLS
+        /* FIXME: what if we want to send a unicast hello over the
+           unprotected socket? */
         if(buf->dtls != NULL) {
             rc = dtls_send(packet_header, sizeof(packet_header),
                            buf->buf, buf->len,

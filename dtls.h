@@ -11,7 +11,10 @@ struct dtls {
     short port;
     int fd;                     /* Socket used if the neighbour is the server */
     int has_data;
-    int has_timer;
+    /* -1 if cancelled, 0 if none of the delays have passed, 1 if only
+       the intermediate delay has passed, 2 if the final delay has
+       passed. */
+    int timer_status;
     struct timeval int_time;
     struct timeval fin_time;
 
