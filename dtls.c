@@ -2,6 +2,8 @@
 #define USE_DTLS
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
@@ -11,8 +13,17 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/ssl_cookie.h>
 #include <mbedtls/error.h>
+#include <mbedtls/debug.h>
+
+#ifdef USE_MBEDTLS_TEST_CERTS
+#pragma message("Beware! We’re using mbedTLS test certificates!")
+#include <mbedtls/certs.h>
+#endif
 
 #include "babeld.h"
 #include "util.h"
@@ -29,9 +40,14 @@ const char *dtls_cert_file = NULL,
 
 static mbedtls_ssl_config dtls_server_conf, dtls_client_conf;
 
-/* BIO.  Protected packets are encrypted and decrypted in this buffer. */
-static unsigned char *dtls_buffer;
-static int dtls_buflen;
+static mbedtls_ssl_cookie_ctx dtls_cookie_ctx;
+static mbedtls_entropy_context dtls_entropy;
+static mbedtls_ctr_drbg_context dtls_ctr_drbg;
+
+/* Buffer Input/Output. Protected packets are encrypted and decrypted
+   in this buffer. */
+static unsigned char *dtls_buffer = NULL;
+static int dtls_buflen = 0;
 
 static void
 print_mbedtls_err(const char *func, int rc)
@@ -45,7 +61,8 @@ print_mbedtls_err(const char *func, int rc)
 void
 mbedtls_param_failed(const char *failure_condition, const char *file, int line)
 {
-    fprintf(stderr, "mbedtls: %s\n%d: %s\n", file, line, failure_condition);
+    fprintf(stderr, "mbedtls_params: %s:%d: %s\n", file, line,
+            failure_condition);
 }
 #endif
 
@@ -56,7 +73,7 @@ ssl_conf_dbg(void *ctx, int dbg_lvl, const char *file, int line,
 {
     ((void)ctx);
     ((void)dbg_lvl);
-    fprintf(stderr, "mbedtls: %s\n%d: %s\n", file, line, msg);
+    fprintf(stderr, "mbedtls_dbg: %s:%d: %s\n", file, line, msg);
 }
 #endif
 
@@ -66,8 +83,18 @@ dtls_init(void)
 {
     int rc;
 
+    mbedtls_entropy_init(&dtls_entropy);
+    mbedtls_ctr_drbg_init(&dtls_ctr_drbg);
+    mbedtls_ssl_cookie_init(&dtls_cookie_ctx);
     mbedtls_ssl_config_init(&dtls_server_conf);
     mbedtls_ssl_config_init(&dtls_client_conf);
+
+#ifdef MBEDTLS_DEBUG_C
+    /* Warn on mbedTLS errors. */
+    mbedtls_debug_set_threshold(1);
+    mbedtls_ssl_conf_dbg(&dtls_server_conf, ssl_conf_dbg, NULL);
+    mbedtls_ssl_conf_dbg(&dtls_client_conf, ssl_conf_dbg, NULL);
+#endif
 
     rc = mbedtls_ssl_config_defaults(&dtls_server_conf,
                                      MBEDTLS_SSL_IS_SERVER,
@@ -90,9 +117,11 @@ dtls_init(void)
     }
 
     /* Nodes MUST only negotiate DTLS version 1.2 or higher */
-    mbedtls_ssl_conf_min_version(&dtls_server_conf, MBEDTLS_SSL_MAJOR_VERSION_3,
+    mbedtls_ssl_conf_min_version(&dtls_server_conf,
+                                 MBEDTLS_SSL_MAJOR_VERSION_3,
                                  MBEDTLS_SSL_MINOR_VERSION_3);
-    mbedtls_ssl_conf_min_version(&dtls_client_conf, MBEDTLS_SSL_MAJOR_VERSION_3,
+    mbedtls_ssl_conf_min_version(&dtls_client_conf,
+                                 MBEDTLS_SSL_MAJOR_VERSION_3,
                                  MBEDTLS_SSL_MINOR_VERSION_3);
 
     /* Nodes MUST use DTLS replay protection to prevent attackers from
@@ -102,10 +131,63 @@ dtls_init(void)
     mbedtls_ssl_conf_dtls_anti_replay(&dtls_client_conf,
                                       MBEDTLS_SSL_ANTI_REPLAY_ENABLED);
 
-#ifdef MBEDTLS_DEBUG_C
-    mbedtls_ssl_conf_dbg(&dtls_server_conf, ssl_conf_dbg, NULL);
-    mbedtls_ssl_conf_dbg(&dtls_client_conf, ssl_conf_dbg, NULL);
+    rc = mbedtls_ctr_drbg_seed(&dtls_ctr_drbg, mbedtls_entropy_func,
+                               &dtls_entropy, NULL, 0);
+    if(rc) {
+        print_mbedtls_err("mbedtls_ctr_drbg_seed", rc);
+        return rc;
+    }
+    mbedtls_ssl_conf_rng(&dtls_server_conf, mbedtls_ctr_drbg_random,
+                         &dtls_ctr_drbg);
+    mbedtls_ssl_conf_rng(&dtls_client_conf, mbedtls_ctr_drbg_random,
+                         &dtls_ctr_drbg);
+
+
+    rc = mbedtls_ssl_cookie_setup(&dtls_cookie_ctx,
+                                  mbedtls_ctr_drbg_random, &dtls_ctr_drbg);
+    if(rc) {
+        print_mbedtls_err("mbedtls_ssl_cookie_setup", rc);
+        return rc;
+    }
+
+    mbedtls_ssl_conf_dtls_cookies(&dtls_server_conf, mbedtls_ssl_cookie_write,
+                                  mbedtls_ssl_cookie_check,
+                                  &dtls_cookie_ctx);
+
+#ifdef USE_MBEDTLS_TEST_CERTS
+    rc = mbedtls_x509_crt_parse(&dtls_srvcert,
+                                (const unsigned char *)mbedtls_test_srv_crt,
+                                mbedtls_test_srv_crt_len);
+    if(rc) {
+        print_mbedtls_err("mbedtls_x509_crt_parse srv_crt", rc);
+        goto fail;
+    }
+
+    rc = mbedtls_x509_crt_parse(&dtls_srvcert,
+                                (const unsigned char *)mbedtls_test_cas_pem,
+                                mbedtls_test_cas_pem_len);
+    if(rc) {
+        print_mbedtls_err("mbedtls_x509_crt_parse cas_pem", rc);
+        goto fail;
+    }
+
+    rc = mbedtls_pk_parse_key(&dtls_pkey,
+                              (const unsigned char *)mbedtls_test_srv_key,
+                              mbedtls_test_srv_key_len,
+                              NULL, 0);
+    if(rc) {
+        print_mbedtls_err("mbedtls_pk_parse_key", rc);
+        goto fail;
+    }
+    mbedtls_ssl_conf_authmode(&dtls_client_conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
 #endif
+
+    dtls_buflen = 8192;
+    dtls_buffer = malloc(dtls_buflen);
+    if(!dtls_buffer) {
+        perror("malloc(dtls_buffer)");
+        return -1;
+    }
 
     return 0;
 }
@@ -115,6 +197,9 @@ dtls_free(void)
 {
     mbedtls_ssl_config_free(&dtls_server_conf);
     mbedtls_ssl_config_free(&dtls_client_conf);
+    mbedtls_ssl_cookie_free(&dtls_cookie_ctx);
+    mbedtls_ctr_drbg_free(&dtls_ctr_drbg);
+    mbedtls_entropy_free(&dtls_entropy);
 }
 
 static int

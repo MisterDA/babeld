@@ -133,6 +133,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 #ifdef USE_DTLS
     neigh->buf.dtls = NULL;
     if(ifp->flags & IF_DTLS) {
+        int rc;
         neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
         rc = dtls_setup_neighbour(neigh);
         if(rc) {
@@ -149,6 +150,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 
 #ifdef USE_DTLS
     if(ifp->flags & IF_DTLS) {
+        int rc;
         /* At that point, if the current node identifies as a server,
            dtls_handshake is a no-op. */
         rc = dtls_handshake(neigh);
