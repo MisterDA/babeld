@@ -5,16 +5,17 @@ USE_DTLS = yes
 ifeq ($(USE_DTLS), yes)
 DTLS_SRCS = dtls.c
 DTLS_OBJS = dtls.o
-DTLS_LDFLAGS = -Lmbedtls_build/library/
-DTLS_LDLIBS = -lmbedx509 -lmbedcrypto -lmbedtls
-DTLS_DEFINES = -DUSE_DTLS
+DTLS_CFLAGS = -Imbedtls_build/include
+DTLS_LDFLAGS = -Lmbedtls_build/library
+DTLS_LDLIBS = -lmbedtls -lmbedx509 -lmbedcrypto
+DTLS_DEFINES = -DUSE_DTLS -DUSE_MBEDTLS_TEST_CERTS
 endif
 
 CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter
 
 DEFINES = $(PLATFORM_DEFINES) $(DTLS_DEFINES)
 
-CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
+CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES) $(DTLS_CFLAGS)
 
 LDFLAGS = $(DTLS_LDFLAGS)
 
@@ -29,7 +30,7 @@ OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        disambiguation.o rule.o $(DTLS_OBJS)
 
 babeld: $(OBJS)
-	$(CC) $(LDFLAGS) -o babeld $(LDLIBS) $(OBJS)
+	$(CC) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
 
 babeld.o: babeld.c version.h
 
