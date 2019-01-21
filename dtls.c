@@ -89,6 +89,19 @@ dtls_init(void)
         return -1;
     }
 
+    /* Nodes MUST only negotiate DTLS version 1.2 or higher */
+    mbedtls_ssl_conf_min_version(&dtls_server_conf, MBEDTLS_SSL_MAJOR_VERSION_3,
+                                 MBEDTLS_SSL_MINOR_VERSION_3);
+    mbedtls_ssl_conf_min_version(&dtls_client_conf, MBEDTLS_SSL_MAJOR_VERSION_3,
+                                 MBEDTLS_SSL_MINOR_VERSION_3);
+
+    /* Nodes MUST use DTLS replay protection to prevent attackers from
+       replaying stale information */
+    mbedtls_ssl_conf_dtls_anti_replay(&dtls_server_conf,
+                                      MBEDTLS_SSL_ANTI_REPLAY_ENABLED);
+    mbedtls_ssl_conf_dtls_anti_replay(&dtls_client_conf,
+                                      MBEDTLS_SSL_ANTI_REPLAY_ENABLED);
+
 #ifdef MBEDTLS_DEBUG_C
     mbedtls_ssl_conf_dbg(&dtls_server_conf, ssl_conf_dbg, NULL);
     mbedtls_ssl_conf_dbg(&dtls_client_conf, ssl_conf_dbg, NULL);
@@ -110,7 +123,7 @@ dtls_cb_send(void *ctx, const unsigned char *buf, size_t len)
     struct neighbour *neigh = ctx;
     int rc;
 
-    rc = babel_send(dtls_protocol_socket, buf, len, NULL, 0,
+    rc = babel_send(neigh->buf.dtls->fd, buf, len, NULL, 0,
                     (const struct sockaddr *)&neigh->buf.sin6,
                     sizeof(neigh->buf.sin6));
     return rc;
@@ -136,10 +149,10 @@ dtls_cb_set_timer(void *ctx, uint32_t int_ms, uint32_t fin_ms)
 {
     struct dtls *dtls = ((struct neighbour *)ctx)->buf.dtls;
 
-    if(dtls->has_timer) {
-        dtls->has_timer = 0;
+    if(dtls->timer_status != -1) {
+        dtls->timer_status = -1;
     } else {
-        dtls->has_timer = 1;
+        dtls->timer_status = 0;
         timeval_add_msec(&dtls->int_time, &now, int_ms);
         timeval_add_msec(&dtls->fin_time, &now, fin_ms);
     }
@@ -151,19 +164,20 @@ static int
 dtls_cb_get_timer(void *ctx)
 {
     struct dtls *dtls = ((struct neighbour *)ctx)->buf.dtls;
-
-    if(!dtls->has_timer)
-        return -1;
-    if(timeval_compare(&now, &dtls->fin_time) >= 0)
-        return 2;
-    if(timeval_compare(&now, &dtls->int_time) >= 0)
-        return 1;
-    return 0;
+    return dtls->timer_status;
 }
 
 static int
 dtls_setup_client_socket(void)
 {
+    /* This function is a duplicate of babel_socket, except that we
+       don’t bind the DTLS client socket. */
+    /* FIXME: the draft reads "Nodes SHOULD ensure that new client
+       DTLS connections use different ephemeral ports from recently
+       used connections to allow servers to differentiate between the
+       new and old DTLS connections.";
+       Is opening a new socket sufficient?
+    */
     int s, rc;
     int saved_errno;
     int one = 1, zero = 0;

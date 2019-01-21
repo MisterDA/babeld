@@ -535,7 +535,7 @@ main(int argc, char **argv)
 #ifdef USE_DTLS
     dtls_protocol_socket = babel_socket(dtls_protocol_port);
     if(dtls_protocol_socket < 0) {
-        perror("Couldn't create link local socket");
+        perror("Couldn't create link local dtls socket");
         goto fail;
     }
 #endif
@@ -637,6 +637,15 @@ main(int argc, char **argv)
             timeval_min(&tv, &ifp->update_flush_timeout);
         }
         FOR_ALL_NEIGHBOURS(neigh) {
+#ifdef USE_DTLS
+            struct dtls *dtls = neigh->buf.dtls;
+            if(dtls && dtls->timer_status != -1) {
+                if(dtls->timer_status < 2)
+                    timeval_min(&tv, &dtls->fin_time);
+                if (dtls->timer_status < 1)
+                    timeval_min(&tv, &dtls->int_time);
+            }
+#endif
             timeval_min(&tv, &neigh->buf.timeout);
         }
         FD_ZERO(&readfds);
@@ -862,6 +871,19 @@ main(int argc, char **argv)
         }
 
         FOR_ALL_NEIGHBOURS(neigh) {
+#ifdef USE_DTLS
+            struct dtls *dtls = neigh->buf.dtls;
+            if(dtls && dtls->timer_status != -1) {
+                if(timeval_compare(&now, &dtls->fin_time) >= 0) {
+                    dtls->timer_status = 2;
+                    dtls_handshake(neigh);
+                } else if(timeval_compare(&now, &dtls->int_time) >= 0) {
+                    dtls->timer_status = 1;
+                } else {
+                    dtls->timer_status = 0;
+                }
+            }
+#endif
             if(neigh->buf.timeout.tv_sec != 0) {
                 if(timeval_compare(&now, &neigh->buf.timeout) >= 0) {
                     flushbuf(&neigh->buf, neigh->ifp);
