@@ -196,11 +196,18 @@ dtls_init(void)
 void
 dtls_free(void)
 {
+#ifdef USE_MBEDTLS_TEST_CERTS
+    mbedtls_x509_crt_free(&dtls_srvcert);
+    mbedtls_pk_free(&dtls_pkey);
+#endif
+
     mbedtls_ssl_config_free(&dtls_server_conf);
     mbedtls_ssl_config_free(&dtls_client_conf);
     mbedtls_ssl_cookie_free(&dtls_cookie_ctx);
     mbedtls_ctr_drbg_free(&dtls_ctr_drbg);
     mbedtls_entropy_free(&dtls_entropy);
+
+    free(dtls_buffer);
 }
 
 static int
@@ -227,6 +234,11 @@ dtls_cb_recv(void *ctx, unsigned char *buf, size_t len)
     recvlen = len < (size_t)dtls->packetlen ? len : (size_t)dtls->packetlen;
     memcpy(buf, dtls->packet, recvlen);
     dtls->has_data = recvlen > len;
+
+    if(!dtls->has_data) {
+        dtls->packet = NULL;
+        dtls->packetlen = 0;
+    }
     return recvlen;
 }
 
