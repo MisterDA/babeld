@@ -46,6 +46,9 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
+#ifdef USE_DTLS
+    char dtls;
+#endif
     int channel;
     int enable_timestamps;
     int rfc6126;
