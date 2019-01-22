@@ -555,7 +555,7 @@ main(int argc, char **argv)
     }
 
     init_signals();
-    rc = resize_receive_buffer(1500);
+    rc = resize_receive_buffer(8192);
     if(rc < 0)
         goto fail;
     if(receive_buffer == NULL)
