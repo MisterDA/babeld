@@ -20,11 +20,6 @@
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
 
-#ifdef USE_MBEDTLS_TEST_CERTS
-#pragma message("Beware! We’re using mbedTLS test certificates!")
-#include <mbedtls/certs.h>
-#endif
-
 #include "babeld.h"
 #include "util.h"
 #include "interface.h"
@@ -32,6 +27,12 @@
 #include "message.h"
 #include "net.h"
 #include "dtls.h"
+
+#ifdef USE_MBEDTLS_TEST_CERTS
+#include <mbedtls/certs.h>
+static mbedtls_x509_crt dtls_srvcert;
+static mbedtls_pk_context dtls_pkey;
+#endif
 
 const char *dtls_cert_file = NULL,
     *dtls_prvkey_file = NULL,
@@ -160,7 +161,7 @@ dtls_init(void)
                                 mbedtls_test_srv_crt_len);
     if(rc) {
         print_mbedtls_err("mbedtls_x509_crt_parse srv_crt", rc);
-        goto fail;
+        return rc;
     }
 
     rc = mbedtls_x509_crt_parse(&dtls_srvcert,
@@ -168,7 +169,7 @@ dtls_init(void)
                                 mbedtls_test_cas_pem_len);
     if(rc) {
         print_mbedtls_err("mbedtls_x509_crt_parse cas_pem", rc);
-        goto fail;
+        return rc;
     }
 
     rc = mbedtls_pk_parse_key(&dtls_pkey,
@@ -177,7 +178,7 @@ dtls_init(void)
                               NULL, 0);
     if(rc) {
         print_mbedtls_err("mbedtls_pk_parse_key", rc);
-        goto fail;
+        return rc;
     }
     mbedtls_ssl_conf_authmode(&dtls_client_conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
 #endif
@@ -223,7 +224,7 @@ dtls_cb_recv(void *ctx, unsigned char *buf, size_t len)
     if(!dtls->has_data)
         return MBEDTLS_ERR_SSL_WANT_READ;
 
-    recvlen = len < (size_t)dtls->packetlen ? len : dtls->packetlen;
+    recvlen = len < (size_t)dtls->packetlen ? len : (size_t)dtls->packetlen;
     memcpy(buf, dtls->packet, recvlen);
     dtls->has_data = recvlen > len;
     return recvlen;
