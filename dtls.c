@@ -20,9 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef USE_DTLS
-#define USE_DTLS
-#endif
+#ifdef USE_DTLS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -576,3 +574,5 @@ dtls_flush_neighbour(struct neighbour *neigh)
     free(neigh->buf.dtls);
     neigh->buf.dtls = NULL;
 }
+
+#endif
