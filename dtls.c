@@ -108,7 +108,7 @@ dtls_init(void)
     }
 
     rc = mbedtls_ssl_config_defaults(&dtls_client_conf,
-                                     MBEDTLS_SSL_IS_SERVER,
+                                     MBEDTLS_SSL_IS_CLIENT,
                                      MBEDTLS_SSL_TRANSPORT_DATAGRAM,
                                      MBEDTLS_SSL_PRESET_DEFAULT);
     if(rc != 0) {
