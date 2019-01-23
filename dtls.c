@@ -551,6 +551,6 @@ dtls_flush_neighbour(struct neighbour *neigh)
     if(neigh->buf.dtls->fd != -1)
         close(neigh->buf.dtls->fd);
     mbedtls_ssl_free(&neigh->buf.dtls->context);
-    free(&neigh->buf.dtls);
+    free(neigh->buf.dtls);
     neigh->buf.dtls = NULL;
 }
