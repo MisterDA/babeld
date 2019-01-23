@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifdef USE_DTLS
 
 extern const char *dtls_cert_file,
     *dtls_prvtkey_file,
@@ -55,3 +56,5 @@ void dtls_parse_packet(const unsigned char *from, struct interface *ifp,
 int dtls_send(const void *buf1, int buflen1, const void *buf2, int buflen2,
               struct dtls *dtls);
 void dtls_flush_neighbour(struct neighbour *neigh);
+
+#endif
