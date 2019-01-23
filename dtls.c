@@ -453,18 +453,26 @@ dtls_setup_neighbour(struct neighbour *neigh)
 }
 
 void
-dtls_parse_packet(const unsigned char *from, struct interface *ifp,
+dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen)
 {
     struct neighbour *neigh;
+    const unsigned char *addr = (const unsigned char*)&from->sin6_addr;
 
-    if(!linklocal(from)) {
+    if(!linklocal(addr)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
-                format_address(from));
+                format_address(addr));
         return;
     }
 
-    neigh = find_neighbour(from, ifp);
+    neigh = find_neighbour(addr, ifp);
+    if(neigh->buf.dtls->port == 0U)
+        neigh->buf.dtls->port = from->sin6_port;
+    else if(neigh->buf.dtls->port != from->sin6_port) {
+        fprintf(stderr, "Neighbour %s has changed ports from %u to %u.\n",
+                format_address(addr), neigh->buf.dtls->port,
+                from->sin6_port);
+    }
 
     neigh->buf.dtls->packet = packet;
     neigh->buf.dtls->packetlen = packetlen;
@@ -476,7 +484,7 @@ dtls_parse_packet(const unsigned char *from, struct interface *ifp,
         rc = mbedtls_ssl_read(&neigh->buf.dtls->context,
                               dtls_buffer, dtls_buflen);
         if(rc > 0) {
-            parse_packet(from, ifp, dtls_buffer, rc, 0);
+            parse_packet(addr, ifp, dtls_buffer, rc, 0);
             /* mbedtls_ssl_check_pending */
         } else if(rc == MBEDTLS_ERR_SSL_WANT_READ ||
                   rc == MBEDTLS_ERR_SSL_WANT_WRITE ||
