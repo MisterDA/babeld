@@ -32,7 +32,7 @@ extern int dtls_protocol_socket;
 
 struct dtls {
     mbedtls_ssl_context context;
-    short port;
+    unsigned short port;
     int fd;                     /* Socket used if the neighbour is the server */
     int has_data;
     /* -1 if cancelled, 0 if none of the delays have passed, 1 if only
@@ -51,7 +51,7 @@ void dtls_free(void);
 
 int dtls_setup_neighbour(struct neighbour *neigh);
 int dtls_handshake(struct neighbour *neigh);
-void dtls_parse_packet(const unsigned char *from, struct interface *ifp,
+void dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
                        const unsigned char *packet, int packetlen);
 int dtls_send(const void *buf1, int buflen1, const void *buf2, int buflen2,
               struct dtls *dtls);
