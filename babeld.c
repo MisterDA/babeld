@@ -754,9 +754,7 @@ main(int argc, char **argv)
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
                         if(ifp->flags & IF_DTLS && is_unicast) {
-                            dtls_parse_packet(
-                                (unsigned char*)&sin6.sin6_addr,
-                                ifp, receive_buffer, rc);
+                            dtls_parse_packet(&sin6, ifp, receive_buffer, rc);
                         }
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);
