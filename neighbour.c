@@ -133,9 +133,9 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->buf.dtls = NULL;
     if(ifp->flags & IF_DTLS) {
         int rc;
-        neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
         rc = dtls_setup_neighbour(neigh);
         if(rc) {
+            fprintf(stderr, "DTLS: failed to setup neighbour state.\n");
             free(buf);
             free(neigh);
             return NULL;
@@ -150,16 +150,9 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 #ifdef USE_DTLS
     if(ifp->flags & IF_DTLS) {
         int rc;
-        /* At that point, if the current node identifies as a server,
-           dtls_handshake is a no-op. */
         rc = dtls_handshake(neigh);
-        if(rc) {
-            /* FIXME: first step of handshaking has failed.  Do we do
-               something special? */
-            fprintf(stderr, "DTLS: first step of handshake has failed.\n");
-            flush_neighbour(neigh);
-            return NULL;
-        }
+        if(rc)
+            fprintf(stderr, "DTLS: starting handshake failed.\n");
     }
 #endif
 

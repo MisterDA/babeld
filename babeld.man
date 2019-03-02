@@ -176,6 +176,9 @@ protocol, and is equivalent to the command-line option
 This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
 .BR \-p .
 .TP
+.BI dtls-protocol-port " port"
+This specifies the Babel-over-DTLS UDP port number to be used by the protocol.
+.TP
 .BI kernel-priority " priority"
 This specifies the priority value used when installing routes into the
 kernel, and is equivalent to the command-line option
@@ -412,7 +415,16 @@ otherwise.
 .TP
 .BR unicast " {" true | false }
 Send multiple copies of TLVs (except Hellos and IHUs) to all neighbours
-rather than sending a single multicast packet.  The default is false.
+rather than sending a single multicast packet.  The default is
+.BR false .
+.TP
+.BR dtls " {" true | false }
+Use Babel-over-DTLS on this interface.  Requires the
+.BR unicast
+flag set to
+.BR true .
+The default is
+.BR false .
 .TP
 .BR rfc6126\-compatible " {" true | false }
 Only send TLVs that are defined by RFC 6126, the older version of Babel.
@@ -449,7 +461,7 @@ The default is
 if the interface is of type
 .B tunnel,
 and
-.BR 0 
+.BR 0
 otherwise.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:

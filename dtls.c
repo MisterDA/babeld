@@ -234,9 +234,11 @@ static int
 dtls_cb_send(void *ctx, const unsigned char *buf, size_t len)
 {
     struct neighbour *neigh = ctx;
-    int rc;
+    int fd, rc;
 
-    rc = babel_send(neigh->buf.dtls->fd, buf, len, NULL, 0,
+    printf("DTLS: cb_send packet len:%zu\n", len);
+    fd = neigh->buf.dtls->fd != -1 ? neigh->buf.dtls->fd : dtls_protocol_socket;
+    rc = babel_send(fd, buf, len, NULL, 0,
                     (const struct sockaddr *)&neigh->buf.sin6,
                     sizeof(neigh->buf.sin6));
     return rc;
@@ -250,6 +252,8 @@ dtls_cb_recv(void *ctx, unsigned char *buf, size_t len)
 
     if(!dtls->has_data)
         return MBEDTLS_ERR_SSL_WANT_READ;
+
+    printf("DTLS: cb_recv packet len:%zu\n", len);
 
     recvlen = len < (size_t)dtls->packetlen ? len : (size_t)dtls->packetlen;
     memcpy(buf, dtls->packet, recvlen);
@@ -267,6 +271,7 @@ dtls_cb_set_timer(void *ctx, uint32_t int_ms, uint32_t fin_ms)
 {
     struct dtls *dtls = ((struct neighbour *)ctx)->buf.dtls;
 
+    printf("DTLS: setting timer %u %u\n", int_ms, fin_ms);
     if(dtls->timer_status != -1) {
         dtls->timer_status = -1;
     } else {
@@ -286,94 +291,19 @@ dtls_cb_get_timer(void *ctx)
 }
 
 static int
-dtls_setup_client_socket(void)
+dtls_setup_client(struct neighbour *neigh)
 {
-    /* This function is a duplicate of babel_socket, except that we
-       don’t bind the DTLS client socket. */
+    int rc;
+
     /* FIXME: the draft reads "Nodes SHOULD ensure that new client
        DTLS connections use different ephemeral ports from recently
        used connections to allow servers to differentiate between the
        new and old DTLS connections.";
        Is opening a new socket sufficient?
     */
-    int s, rc;
-    int saved_errno;
-    int one = 1, zero = 0;
-    const int ds = 0xc0;        /* CS6 - Network Control */
-
-    s = socket(PF_INET6, SOCK_DGRAM, 0);
-    if(s < 0)
-        return -1;
-
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
-    if(rc < 0)
-        goto fail;
-
-    rc = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    if(rc < 0)
-        goto fail;
-
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-                    &zero, sizeof(zero));
-    if(rc < 0)
-        goto fail;
-
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-                    &one, sizeof(one));
-    if(rc < 0)
-        goto fail;
-
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-                    &one, sizeof(one));
-    if(rc < 0)
-        goto fail;
-
-#ifdef IPV6_TCLASS
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_TCLASS, &ds, sizeof(ds));
-    if(rc < 0)
-#else
-    errno = ENOSYS;
-#endif
-        perror("Couldn't set traffic class");
-
-    rc = setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO,
-                    &one, sizeof(one));
-    if(rc < 0)
-        goto fail;
-
-    rc = fcntl(s, F_GETFL, 0);
-    if(rc < 0)
-        goto fail;
-
-    rc = fcntl(s, F_SETFL, (rc | O_NONBLOCK));
-    if(rc < 0)
-        goto fail;
-
-    rc = fcntl(s, F_GETFD, 0);
-    if(rc < 0)
-        goto fail;
-
-    rc = fcntl(s, F_SETFD, rc | FD_CLOEXEC);
-    if(rc < 0)
-        goto fail;
-
-    return s;
-
- fail:
-    saved_errno = errno;
-    close(s);
-    errno = saved_errno;
-    return -1;
-}
-
-static int
-dtls_setup_client(struct neighbour *neigh)
-{
-    int rc;
-
-    rc = dtls_setup_client_socket();
+    rc = babel_socket(0);
     if(rc < 0) {
-        perror("dtls_setup_client_socket");
+        perror("babel_socket");
         return -1;
     }
     neigh->buf.dtls->fd = rc;
@@ -383,6 +313,8 @@ dtls_setup_client(struct neighbour *neigh)
         print_mbedtls_err("mbedtls_ssl_setup", rc);
         return rc;
     }
+
+    printf("OK CLIENT %s:%d\n", __FILE__, __LINE__);
 
     return 0;
 }
@@ -408,6 +340,11 @@ dtls_setup_server(struct neighbour *neigh)
         return rc;
     }
 
+    printf("I am a server for neighbour ");
+    for (size_t i = 0; i < 18; ++i)
+        printf("%02x", info[i] & 0xff);
+    putchar('\n');
+
     return 0;
 }
 
@@ -426,6 +363,9 @@ dtls_setup_neighbour(struct neighbour *neigh)
     neigh->buf.dtls = dtls;
     memset(dtls, 0, sizeof(*dtls));
     dtls->fd = -1;
+    dtls->timer_status = -1;
+
+    neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
 
     mbedtls_ssl_init(&dtls->context);
     mbedtls_ssl_set_timer_cb(&dtls->context,
@@ -456,8 +396,9 @@ void
 dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen)
 {
-    struct neighbour *neigh;
     const unsigned char *addr = (const unsigned char*)&from->sin6_addr;
+    struct neighbour *neigh;
+    int rc;
 
     if(!linklocal(addr)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
@@ -465,7 +406,15 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
         return;
     }
 
+    printf("DTLS: parsing packet\n");
+
     neigh = find_neighbour(addr, ifp);
+    /* if(neigh->buf.dtls == NULL) { */
+    /*     rc = dtls_setup_neighbour(neigh); */
+    /*     if(rc) */
+    /*         return; */
+    /* } */
+
     if(neigh->buf.dtls->port == 0U)
         neigh->buf.dtls->port = from->sin6_port;
     else if(neigh->buf.dtls->port != from->sin6_port) {
@@ -479,7 +428,6 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
     neigh->buf.dtls->has_data = 1;
 
     if(neigh->buf.dtls->context.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
-        int rc;
         neigh->buf.dtls->has_data = 1;
         rc = mbedtls_ssl_read(&neigh->buf.dtls->context,
                               dtls_buffer, dtls_buflen);
@@ -500,6 +448,12 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
         } else {
             dtls_flush_neighbour(neigh);
         }
+    } else {
+        printf("Trying handshake in parse\n");
+        rc = dtls_handshake(neigh);
+        if (rc) {
+            printf("Parser handshake failed?\n");
+        }
     }
 }
 
@@ -511,18 +465,21 @@ dtls_handshake(struct neighbour *neigh)
     rc = mbedtls_ssl_handshake(&neigh->buf.dtls->context);
     if(rc == 0) {
         return rc;
-    } else if(rc == MBEDTLS_ERR_SSL_WANT_READ ||
-              rc == MBEDTLS_ERR_SSL_WANT_WRITE ||
+    } else if(rc == MBEDTLS_ERR_SSL_WANT_WRITE ||
               rc == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS) {
         /* We’re supposed to call this function later, when
          * the underlying transport is ready, or when the
          * async or crypto operation has finished.  Let’s do
          * nothing and see what happens. */
-        print_mbedtls_err("mbedtls_ssl_handshake", rc);
+        print_mbedtls_err("mbedtls_ssl_handshake WRITE|ASYNC", rc);
         return rc;
+    } else if (rc == MBEDTLS_ERR_SSL_WANT_READ) {
+        print_mbedtls_err("mbedtls_ssl_handshake READ", rc);
+        return 0;
     } else if(rc == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
         goto flush;
     } else {
+        fprintf(stderr, "mbedtls_ssl_handskake error\n'");
         goto flush;
     }
 

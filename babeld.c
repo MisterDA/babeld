@@ -642,10 +642,11 @@ main(int argc, char **argv)
         FOR_ALL_NEIGHBOURS(neigh) {
 #ifdef USE_DTLS
             struct dtls *dtls = neigh->buf.dtls;
-            if(dtls && dtls->timer_status != -1) {
+            if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
+                printf("dtls->timer_status == %d\n", dtls->timer_status);
                 if(dtls->timer_status < 2)
                     timeval_min(&tv, &dtls->fin_time);
-                if (dtls->timer_status < 1)
+                if(dtls->timer_status < 1)
                     timeval_min(&tv, &dtls->int_time);
             }
 #endif
@@ -660,6 +661,13 @@ main(int argc, char **argv)
 #ifdef USE_DTLS
             FD_SET(dtls_protocol_socket, &readfds);
             maxfd = MAX(maxfd, dtls_protocol_socket);
+            FOR_ALL_NEIGHBOURS(neigh) {
+                struct dtls *dtls = neigh->buf.dtls;
+                if(dtls && dtls->fd != -1) {
+                    FD_SET(dtls->fd, &readfds);
+                    maxfd = MAX(maxfd, dtls->fd);
+                }
+            }
 #endif
             if(kernel_socket < 0) kernel_setup_socket(1);
             if(kernel_socket >= 0) {
@@ -715,6 +723,7 @@ main(int argc, char **argv)
                     if(!if_up(ifp))
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
+                        printf("Received unprotected packet size:%d\n", rc);
 #ifdef USE_DTLS
                         /* We allow DTLS to be enabled per interface.
                            If a packet is received on an interface
@@ -741,31 +750,45 @@ main(int argc, char **argv)
         }
 
 #ifdef USE_DTLS
+#define dtls_handle_packet(fd)                                          \
+        do {                                                            \
+            rc = babel_recv((fd), receive_buffer, receive_buffer_size,  \
+                            (struct sockaddr*)&sin6, sizeof(sin6),      \
+                            &is_unicast);                               \
+            if(rc < 0) {                                                \
+                if(errno != EAGAIN && errno != EINTR) {                 \
+                    perror("recv");                                     \
+                    sleep(1);                                           \
+                }                                                       \
+            } else {                                                    \
+                FOR_ALL_INTERFACES(ifp) {                               \
+                    if(!if_up(ifp))                                     \
+                        continue;                                       \
+                    if(ifp->ifindex == sin6.sin6_scope_id) {            \
+                        printf("Received protected packet size:%d"      \
+                               " is_unicast:%d\n", rc, is_unicast);     \
+                        if(ifp->flags & IF_DTLS && is_unicast) {        \
+                            dtls_parse_packet(&sin6, ifp,               \
+                                              receive_buffer, rc);      \
+                        }                                               \
+                        VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,     \
+                                                    receive_buffer_size); \
+                        break;                                          \
+                    }                                                   \
+                }                                                       \
+            }                                                           \
+        } while(0)                                                      \
+
         if(FD_ISSET(dtls_protocol_socket, &readfds)) {
-            rc = babel_recv(protocol_socket,
-                            receive_buffer, receive_buffer_size,
-                            (struct sockaddr*)&sin6, sizeof(sin6),
-                            &is_unicast);
-            if(rc < 0) {
-                if(errno != EAGAIN && errno != EINTR) {
-                    perror("recv");
-                    sleep(1);
-                }
-            } else {
-                FOR_ALL_INTERFACES(ifp) {
-                    if(!if_up(ifp))
-                        continue;
-                    if(ifp->ifindex == sin6.sin6_scope_id) {
-                        if(ifp->flags & IF_DTLS && is_unicast) {
-                            dtls_parse_packet(&sin6, ifp, receive_buffer, rc);
-                        }
-                        VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
-                                                    receive_buffer_size);
-                        break;
-                    }
-                }
+            dtls_handle_packet(dtls_protocol_socket);
+        }
+        FOR_ALL_NEIGHBOURS(neigh) {
+            struct dtls *dtls = neigh->buf.dtls;
+            if(dtls && dtls->fd != -1 && FD_ISSET(dtls->fd, &readfds)) {
+                dtls_handle_packet(dtls->fd);
             }
         }
+#undef dtls_handle_packet
 #endif
 
         if(local_server_socket >= 0 && FD_ISSET(local_server_socket, &readfds))
@@ -874,14 +897,16 @@ main(int argc, char **argv)
         FOR_ALL_NEIGHBOURS(neigh) {
 #ifdef USE_DTLS
             struct dtls *dtls = neigh->buf.dtls;
-            if(dtls && dtls->timer_status != -1) {
+            if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
                 if(timeval_compare(&now, &dtls->fin_time) >= 0) {
                     dtls->timer_status = 2;
-                    dtls_handshake(neigh);
+                    printf("DTLS: calling handshake\n");
+                    rc = dtls_handshake(neigh);
+                    if (rc) {
+                        fprintf(stderr, "DTLS: timer handshake failed?\n");
+                    }
                 } else if(timeval_compare(&now, &dtls->int_time) >= 0) {
                     dtls->timer_status = 1;
-                } else {
-                    dtls->timer_status = 0;
                 }
             }
 #endif
