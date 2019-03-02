@@ -171,6 +171,9 @@ protocol, and is equivalent to the command-line option
 This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
 .BR \-p .
 .TP
+.BI dtls-protocol-port " port"
+This specifies the Babel-over-DTLS UDP port number to be used by the protocol.
+.TP
 .BI kernel-priority " priority"
 This specifies the priority value used when installing routes into the
 kernel, and is equivalent to the command-line option
@@ -408,6 +411,14 @@ otherwise.
 .BR unicast " {" true | false }
 Send multiple copies of TLVs other than Hellos to all neighbours rather
 than sending a single multicast packet.  The default is false.
+.TP
+.BR dtls " {" true | false }
+Use Babel-over-DTLS on this interface.  Requires the
+.BR unicast
+flag set to
+.BR true .
+The default is
+.BR false .
 .TP
 .BR rfc6126\-compatible " {" true | false }
 Disable some features that are incompatible with RFC 6126 (the older
