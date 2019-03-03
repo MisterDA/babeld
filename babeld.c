@@ -644,10 +644,10 @@ main(int argc, char **argv)
             struct dtls *dtls = neigh->buf.dtls;
             if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
                 printf("dtls->timer_status == %d\n", dtls->timer_status);
-                if(dtls->timer_status < 2)
-                    timeval_min(&tv, &dtls->fin_time);
-                if(dtls->timer_status < 1)
+                if(dtls->timer_status == 0)
                     timeval_min(&tv, &dtls->int_time);
+                else
+                    timeval_min(&tv, &dtls->fin_time);
             }
 #endif
             timeval_min(&tv, &neigh->buf.timeout);
@@ -896,19 +896,32 @@ main(int argc, char **argv)
 
         FOR_ALL_NEIGHBOURS(neigh) {
 #ifdef USE_DTLS
-            struct dtls *dtls = neigh->buf.dtls;
-            if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
-                if(timeval_compare(&now, &dtls->fin_time) >= 0) {
-                    dtls->timer_status = 2;
-                    printf("DTLS: calling handshake\n");
-                    rc = dtls_handshake(neigh);
-                    if (rc) {
-                        fprintf(stderr, "DTLS: timer handshake failed?\n");
+            if(neigh->ifp->flags & IF_DTLS) {
+                struct dtls *dtls = neigh->buf.dtls;
+                if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
+                    if(timeval_compare(&now, &dtls->fin_time) >= 0) {
+                        dtls->timer_status = 2;
+                        printf("DTLS: timer 2 expired\n");
+                        rc = dtls_handshake(neigh);
+                        if (rc) {
+                            fprintf(stderr, "DTLS: timer handshake failed?\n");
+                        }
+                    } else if(timeval_compare(&now, &dtls->int_time) >= 0) {
+                        dtls->timer_status = 1;
                     }
-                } else if(timeval_compare(&now, &dtls->int_time) >= 0) {
-                    dtls->timer_status = 1;
                 }
-            }
+
+                /* Do we want to drop this packet if the dtls state is
+                 * not ready? */
+                if(neigh->buf.timeout.tv_sec != 0) {
+                    if(timeval_compare(&now, &neigh->buf.timeout) >= 0) {
+                        if(dtls)
+                            dtls_flushbuf(&neigh->buf, neigh->ifp);
+                        else
+                            dtls_dropbuf(&neigh->buf);
+                    }
+                }
+            } else
 #endif
             if(neigh->buf.timeout.tv_sec != 0) {
                 if(timeval_compare(&now, &neigh->buf.timeout) >= 0) {

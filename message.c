@@ -1002,6 +1002,55 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     buf->timeout.tv_usec = 0;
 }
 
+#ifdef USE_DTLS
+void
+dtls_flushbuf(struct buffered *buf, struct interface *ifp)
+{
+    assert(buf->len <= buf->size);
+    assert(buf->dtls);
+
+    if(buf->len > 0) {
+        int rc;
+        debugf("  (flushing %d buffered bytes)\n", buf->len);
+        DO_HTONS(packet_header + 2, buf->len);
+        fill_rtt_message(buf, ifp);
+
+        /* FIXME: what if we want to send an unicast hello over the
+           unprotected socket? */
+        rc = dtls_send(packet_header, sizeof(packet_header),
+                       buf->buf, buf->len,
+                       buf->dtls);
+        if(rc < 0)
+            perror("send");
+    }
+    VALGRIND_MAKE_MEM_UNDEFINED(buf->buf, buf->size);
+    buf->len = 0;
+    buf->hello = -1;
+    buf->have_id = 0;
+    buf->have_nh = 0;
+    buf->have_prefix = 0;
+    buf->timeout.tv_sec = 0;
+    buf->timeout.tv_usec = 0;
+}
+
+void
+dtls_dropbuf(struct buffered *buf)
+{
+    assert(buf->len <= buf->size);
+
+    if(buf->len > 0)
+        debugf("  (dropping %d buffered bytes)\n", buf->len);
+    VALGRIND_MAKE_MEM_UNDEFINED(buf->buf, buf->size);
+    buf->len = 0;
+    buf->hello = -1;
+    buf->have_id = 0;
+    buf->have_nh = 0;
+    buf->have_prefix = 0;
+    buf->timeout.tv_sec = 0;
+    buf->timeout.tv_usec = 0;
+}
+#endif
+
 static void
 schedule_flush_ms(struct buffered *buf, int msecs)
 {
