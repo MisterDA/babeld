@@ -29,7 +29,7 @@ extern const char *dtls_cert_file,
 
 struct dtls {
     mbedtls_ssl_context context;
-    unsigned short port;
+    unsigned short port; /* Client source port, network order */
     int fd;
     int has_data;
     /* -1 if cancelled, 0 if none of the delays have passed, 1 if only

@@ -53,6 +53,10 @@ void parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen,
                   int ignore);
 void flushbuf(struct buffered *buf, struct interface *ifp);
+#ifdef USE_DTLS
+void dtls_flushbuf(struct buffered *buf, struct interface *ifp);
+void dtls_dropbuf(struct buffered *buf);
+#endif
 void flushupdates(struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);

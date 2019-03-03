@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include <mbedtls/ssl_cookie.h>
 #include <mbedtls/error.h>
 #include <mbedtls/debug.h>
+#include <mbedtls/certs.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -48,16 +49,13 @@ THE SOFTWARE.
 #include "net.h"
 #include "dtls.h"
 
-#ifdef USE_MBEDTLS_TEST_CERTS
-#include <mbedtls/certs.h>
-static mbedtls_x509_crt dtls_srvcert;
-static mbedtls_pk_context dtls_pkey;
-#endif
-
 const char *dtls_cert_file = NULL,
     *dtls_prvkey_file = NULL,
     *dtls_cacert_file = NULL,
     *dtls_prvtkey_password = NULL;
+
+static mbedtls_x509_crt dtls_srvcert;
+static mbedtls_pk_context dtls_pkey;
 
 static mbedtls_ssl_config dtls_server_conf, dtls_client_conf;
 
@@ -109,6 +107,8 @@ dtls_init(void)
     mbedtls_ssl_cookie_init(&dtls_cookie_ctx);
     mbedtls_ssl_config_init(&dtls_server_conf);
     mbedtls_ssl_config_init(&dtls_client_conf);
+    mbedtls_x509_crt_init(&dtls_srvcert);
+    mbedtls_pk_init(&dtls_pkey);
 
 #ifdef MBEDTLS_DEBUG_C
     /* Warn on mbedTLS errors. */
@@ -201,7 +201,39 @@ dtls_init(void)
         return rc;
     }
     mbedtls_ssl_conf_authmode(&dtls_client_conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
+#else
+    rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cert_file);
+    if(rc) {
+        print_mbedtls_err("mbedtls_x509_crt_parse_file cert_file", rc);
+        return rc;
+    }
+
+    if(dtls_cacert_file) {
+        rc = mbedtls_x509_crt_parse_file(&dtls_srvcert, dtls_cacert_file);
+        if(rc) {
+            print_mbedtls_err("mbedtls_x509_crt_parse cacert_file", rc);
+            return rc;
+        }
+    } else {
+        fprintf(stderr, "DTLS: No CA certificate was given.\n");
+    }
+
+    /* FIXME: ask user for password? */
+    rc = mbedtls_pk_parse_keyfile(&dtls_pkey, dtls_prvtkey_file,
+                                  dtls_prvtkey_password);
+    if(rc) {
+        print_mbedtls_err("mbedtls_pk_parse_keyfile", rc);
+        goto fail;
+    }
 #endif
+
+    rc = mbedtls_ssl_conf_own_cert(&dtls_server_conf, &dtls_srvcert, &dtls_pkey);
+    if(rc) {
+        print_mbedtls_err("mbedtls_ssl_conf_own_cert", rc);
+
+    }
+    mbedtls_ssl_conf_ca_chain(&dtls_client_conf, dtls_srvcert.next, NULL);
+    mbedtls_ssl_conf_ca_chain(&dtls_server_conf, dtls_srvcert.next, NULL);
 
     dtls_buflen = 8192;
     dtls_buffer = malloc(dtls_buflen);
@@ -216,16 +248,13 @@ dtls_init(void)
 void
 dtls_free(void)
 {
-#ifdef USE_MBEDTLS_TEST_CERTS
-    mbedtls_x509_crt_free(&dtls_srvcert);
-    mbedtls_pk_free(&dtls_pkey);
-#endif
-
     mbedtls_ssl_config_free(&dtls_server_conf);
     mbedtls_ssl_config_free(&dtls_client_conf);
     mbedtls_ssl_cookie_free(&dtls_cookie_ctx);
     mbedtls_ctr_drbg_free(&dtls_ctr_drbg);
     mbedtls_entropy_free(&dtls_entropy);
+    mbedtls_x509_crt_free(&dtls_srvcert);
+    mbedtls_pk_free(&dtls_pkey);
 
     free(dtls_buffer);
 }
@@ -236,7 +265,7 @@ dtls_cb_send(void *ctx, const unsigned char *buf, size_t len)
     struct neighbour *neigh = ctx;
     int fd, rc;
 
-    printf("DTLS: cb_send packet len:%zu\n", len);
+    printf("DTLS: cb_send packet len:%zu port:%d\n", len, ntohs(neigh->buf.sin6.sin6_port));
     fd = neigh->buf.dtls->fd != -1 ? neigh->buf.dtls->fd : dtls_protocol_socket;
     rc = babel_send(fd, buf, len, NULL, 0,
                     (const struct sockaddr *)&neigh->buf.sin6,
@@ -307,6 +336,8 @@ dtls_setup_client(struct neighbour *neigh)
         return -1;
     }
     neigh->buf.dtls->fd = rc;
+    neigh->buf.dtls->port = htons(dtls_protocol_port);
+    neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
 
     rc = mbedtls_ssl_setup(&neigh->buf.dtls->context, &dtls_client_conf);
     if(rc) {
@@ -365,8 +396,6 @@ dtls_setup_neighbour(struct neighbour *neigh)
     dtls->fd = -1;
     dtls->timer_status = -1;
 
-    neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
-
     mbedtls_ssl_init(&dtls->context);
     mbedtls_ssl_set_timer_cb(&dtls->context,
                              neigh, /* closure */
@@ -409,15 +438,18 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
     printf("DTLS: parsing packet\n");
 
     neigh = find_neighbour(addr, ifp);
-    /* if(neigh->buf.dtls == NULL) { */
-    /*     rc = dtls_setup_neighbour(neigh); */
-    /*     if(rc) */
-    /*         return; */
-    /* } */
+    if(neigh->buf.dtls == NULL) {
+        rc = dtls_setup_neighbour(neigh);
+        if(rc) {
+            fprintf(stderr, "DTLS: could not setup neighbour in dtls_parse_packet.\n");
+            return;
+        }
+    }
 
-    if(neigh->buf.dtls->port == 0U)
+    if(neigh->buf.dtls->port == 0U) {
         neigh->buf.dtls->port = from->sin6_port;
-    else if(neigh->buf.dtls->port != from->sin6_port) {
+        neigh->buf.sin6.sin6_port = from->sin6_port;
+    } else if(neigh->buf.dtls->port != from->sin6_port) {
         fprintf(stderr, "Neighbour %s has changed ports from %u to %u.\n",
                 format_address(addr), neigh->buf.dtls->port,
                 from->sin6_port);
@@ -449,7 +481,7 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
             dtls_flush_neighbour(neigh);
         }
     } else {
-        printf("Trying handshake in parse\n");
+        printf("Trying handshake in parser\n");
         rc = dtls_handshake(neigh);
         if (rc) {
             printf("Parser handshake failed?\n");
@@ -533,6 +565,7 @@ partial_write:
 void
 dtls_flush_neighbour(struct neighbour *neigh)
 {
+    printf("FLUSHING neighbour\n");
     if(neigh->buf.dtls->fd != -1)
         close(neigh->buf.dtls->fd);
     mbedtls_ssl_free(&neigh->buf.dtls->context);
