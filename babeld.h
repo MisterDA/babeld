@@ -106,7 +106,7 @@ extern int protocol_socket;
 extern int kernel_socket;
 extern int max_request_hopcount;
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 extern int dtls_protocol_port;
 extern int dtls_protocol_socket;
 #endif

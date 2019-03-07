@@ -577,7 +577,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->unicast = v;
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
         } else if (strcmp(token, "dtls") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -740,7 +740,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(unicast);
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     MERGE(dtls);
 #endif
     MERGE(channel);
@@ -823,7 +823,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     }
 
     if(strcmp(token, "protocol-port") == 0 ||
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
        strcmp(token, "dtls-protocol-port") == 0 ||
 #endif
        strcmp(token, "kernel-priority") == 0 ||
@@ -839,7 +839,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 
         if(strcmp(token, "protocol-port") == 0)
             protocol_port = v;
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
         else if(strcmp(token, "dtls-protocol-port") == 0)
             dtls_protocol_port = v;
 #endif

@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 
 #include <stdio.h>
 #include <stdlib.h>

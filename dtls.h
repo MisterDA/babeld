@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 
 extern const char *dtls_cert_file,
     *dtls_prvtkey_file,

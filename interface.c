@@ -43,10 +43,9 @@ THE SOFTWARE.
 #include "local.h"
 #include "xroute.h"
 
-
 #define MIN_MTU 512
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 #include <mbedtls/ssl.h>
 #include "dtls.h"
 #endif
@@ -402,7 +401,7 @@ interface_updown(struct interface *ifp, int up)
         if(IF_CONF(ifp, unicast) == CONFIG_YES)
             ifp->flags |= IF_UNICAST;
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
         if(IF_CONF(ifp, dtls) == CONFIG_YES)
             ifp->flags |= IF_DTLS;
 #endif

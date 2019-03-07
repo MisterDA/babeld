@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "configuration.h"
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 #include <mbedtls/ssl.h>
 #include "dtls.h"
 #endif
@@ -1002,7 +1002,7 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     buf->timeout.tv_usec = 0;
 }
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 void
 dtls_flushbuf(struct buffered *buf, struct interface *ifp)
 {
