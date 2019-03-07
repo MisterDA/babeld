@@ -1,14 +1,14 @@
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
-USE_DTLS = yes
-ifeq ($(USE_DTLS), yes)
+HAVE_MBEDTLS = yes
+ifeq ($(HAVE_MBEDTLS), yes)
 DTLS_SRCS = dtls.c
 DTLS_OBJS = dtls.o
 DTLS_CFLAGS = -Imbedtls_build/include
 DTLS_LDFLAGS = -Lmbedtls_build/library
 DTLS_LDLIBS = -lmbedtls -lmbedx509 -lmbedcrypto
-DTLS_DEFINES = -DUSE_DTLS -DUSE_MBEDTLS_TEST_CERTS
+DTLS_DEFINES = -DHAVE_MBEDTLS -DUSE_MBEDTLS_TEST_CERTS
 endif
 
 CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter

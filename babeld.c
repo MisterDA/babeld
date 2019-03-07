@@ -55,7 +55,7 @@ THE SOFTWARE.
 #include "rule.h"
 #include "version.h"
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 #include <mbedtls/ssl.h>
 #include "dtls.h"
 #endif
@@ -91,7 +91,7 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 int dtls_protocol_port;
 int dtls_protocol_socket;
 #endif
@@ -177,7 +177,7 @@ main(int argc, char **argv)
 
     parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
     protocol_port = 6696;
-#if USE_DTLS
+#if HAVE_MBEDTLS
     dtls_protocol_port = 50000;
 #endif
     change_smoothing_half_life(4);
@@ -535,7 +535,7 @@ main(int argc, char **argv)
         goto fail;
     }
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     dtls_protocol_socket = babel_socket(dtls_protocol_port);
     if(dtls_protocol_socket < 0) {
         perror("Couldn't create link local dtls socket");
@@ -564,7 +564,7 @@ main(int argc, char **argv)
     if(receive_buffer == NULL)
         goto fail;
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     rc = dtls_init();
     if(rc)
         goto fail;
@@ -640,7 +640,7 @@ main(int argc, char **argv)
             timeval_min(&tv, &ifp->update_flush_timeout);
         }
         FOR_ALL_NEIGHBOURS(neigh) {
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
             struct dtls *dtls = neigh->buf.dtls;
             if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
                 printf("dtls->timer_status == %d\n", dtls->timer_status);
@@ -658,7 +658,7 @@ main(int argc, char **argv)
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
             maxfd = MAX(maxfd, protocol_socket);
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
             FD_SET(dtls_protocol_socket, &readfds);
             maxfd = MAX(maxfd, dtls_protocol_socket);
             FOR_ALL_NEIGHBOURS(neigh) {
@@ -724,7 +724,7 @@ main(int argc, char **argv)
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
                         printf("Received unprotected packet size:%d\n", rc);
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
                         /* We allow DTLS to be enabled per interface.
                            If a packet is received on an interface
                            where DTLS hasn’t been enabled, the packet
@@ -749,7 +749,7 @@ main(int argc, char **argv)
             }
         }
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 #define dtls_handle_packet(fd)                                          \
         do {                                                            \
             rc = babel_recv((fd), receive_buffer, receive_buffer_size,  \
@@ -895,7 +895,7 @@ main(int argc, char **argv)
         }
 
         FOR_ALL_NEIGHBOURS(neigh) {
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
             if(neigh->ifp->flags & IF_DTLS) {
                 struct dtls *dtls = neigh->buf.dtls;
                 if(dtls && (dtls->timer_status == 0 || dtls->timer_status == 1)) {
@@ -969,7 +969,7 @@ main(int argc, char **argv)
     kernel_setup_socket(0);
     kernel_setup(0);
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     dtls_free();
 #endif
 

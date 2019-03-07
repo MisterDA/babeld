@@ -53,7 +53,7 @@ void parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen,
                   int ignore);
 void flushbuf(struct buffered *buf, struct interface *ifp);
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 void dtls_flushbuf(struct buffered *buf, struct interface *ifp);
 void dtls_dropbuf(struct buffered *buf);
 #endif

@@ -46,7 +46,7 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     char dtls;
 #endif
     int channel;
@@ -80,7 +80,7 @@ struct interface_conf {
 /* Remain compatible with RFC 6126. */
 #define IF_RFC6126 (1 << 7)
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 6)
 #endif
@@ -107,7 +107,7 @@ struct buffered {
        (-1) if there is none. */
     int hello;
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     struct dtls *dtls;
 #endif
 };

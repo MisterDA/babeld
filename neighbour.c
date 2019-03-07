@@ -39,7 +39,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "local.h"
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
 #include <mbedtls/ssl.h>
 #include "dtls.h"
 #endif
@@ -74,7 +74,7 @@ flush_neighbour(struct neighbour *neigh)
     }
     local_notify_neighbour(neigh, LOCAL_FLUSH);
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     /* The draft reads "The node SHOULD send a DTLS close_notify alert
        to the neighbour if it believes the link is still viable."  I
        believe that the link is not viable, therefore I don’t send a
@@ -129,7 +129,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->buf.sin6.sin6_port = htons(protocol_port);
     neigh->buf.sin6.sin6_scope_id = ifp->ifindex;
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     neigh->buf.dtls = NULL;
     if(ifp->flags & IF_DTLS) {
         int rc;
@@ -147,7 +147,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);
 
-#ifdef USE_DTLS
+#ifdef HAVE_MBEDTLS
     if(ifp->flags & IF_DTLS) {
         int rc;
         rc = dtls_handshake(neigh);
