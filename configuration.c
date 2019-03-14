@@ -578,7 +578,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 goto error;
             if_conf->unicast = v;
 #ifdef HAVE_MBEDTLS
-        } else if (strcmp(token, "dtls") == 0) {
+        } else if(strcmp(token, "dtls") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)

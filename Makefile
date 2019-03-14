@@ -5,8 +5,8 @@ HAVE_MBEDTLS = yes
 ifeq ($(HAVE_MBEDTLS), yes)
 DTLS_SRCS = dtls.c
 DTLS_OBJS = dtls.o
-DTLS_CFLAGS = -Imbedtls_build/include
-DTLS_LDFLAGS = -Lmbedtls_build/library
+DTLS_CFLAGS =
+DTLS_LDFLAGS =
 DTLS_LDLIBS = -lmbedtls -lmbedx509 -lmbedcrypto
 DTLS_DEFINES = -DHAVE_MBEDTLS -DUSE_MBEDTLS_TEST_CERTS
 endif
