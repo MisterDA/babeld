@@ -11,7 +11,7 @@ DTLS_LDLIBS = -lmbedtls -lmbedx509 -lmbedcrypto
 DTLS_DEFINES = -DHAVE_MBEDTLS -DUSE_MBEDTLS_TEST_CERTS
 endif
 
-CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-unused-parameter
+CDEBUGFLAGS = -Os -g -Wall
 
 DEFINES = $(PLATFORM_DEFINES) $(DTLS_DEFINES)
 
