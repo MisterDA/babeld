@@ -301,7 +301,7 @@ dtls_cb_set_timer(void *ctx, uint32_t int_ms, uint32_t fin_ms)
     struct dtls *dtls = ((struct neighbour *)ctx)->buf.dtls;
 
     printf("DTLS: setting timer %u %u\n", int_ms, fin_ms);
-    if(dtls->timer_status != -1) {
+    if(dtls->timer_status != -1 || fin_ms == 0) {
         dtls->timer_status = -1;
     } else {
         dtls->timer_status = 0;
