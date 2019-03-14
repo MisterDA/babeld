@@ -903,7 +903,7 @@ main(int argc, char **argv)
                         dtls->timer_status = 2;
                         printf("DTLS: timer 2 expired\n");
                         rc = dtls_handshake(neigh);
-                        if (rc) {
+                        if(rc) {
                             fprintf(stderr, "DTLS: timer handshake failed?\n");
                         }
                     } else if(timeval_compare(&now, &dtls->int_time) >= 0) {

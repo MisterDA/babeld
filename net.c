@@ -147,7 +147,7 @@ babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
     if(rc < 0)
         return rc;
 
-    if (is_unicast != NULL) {
+    if(is_unicast != NULL) {
         *is_unicast = -1;
         for(cmsg = CMSG_FIRSTHDR(&msg);
             cmsg != NULL;

@@ -483,7 +483,7 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
     } else {
         printf("Trying handshake in parser\n");
         rc = dtls_handshake(neigh);
-        if (rc) {
+        if(rc) {
             printf("Parser handshake failed?\n");
         }
     }
@@ -505,7 +505,7 @@ dtls_handshake(struct neighbour *neigh)
          * nothing and see what happens. */
         print_mbedtls_err("mbedtls_ssl_handshake WRITE|ASYNC", rc);
         return rc;
-    } else if (rc == MBEDTLS_ERR_SSL_WANT_READ) {
+    } else if(rc == MBEDTLS_ERR_SSL_WANT_READ) {
         print_mbedtls_err("mbedtls_ssl_handshake READ", rc);
         return 0;
     } else if(rc == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
@@ -554,7 +554,7 @@ partial_write:
             print_mbedtls_err("dtls_send mbedtls_ssl_write", rc);
             /* FIXME: what do we do? */
         }
-    } else if (rc < len) {
+    } else if(rc < len) {
         buf += rc;
         len -= rc;
         goto partial_write;
