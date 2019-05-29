@@ -176,9 +176,6 @@ protocol, and is equivalent to the command-line option
 This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
 .BR \-p .
 .TP
-.BI dtls-protocol-port " port"
-This specifies the Babel-over-DTLS UDP port number to be used by the protocol.
-.TP
 .BI kernel-priority " priority"
 This specifies the priority value used when installing routes into the
 kernel, and is equivalent to the command-line option

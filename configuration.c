@@ -811,9 +811,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     }
 
     if(strcmp(token, "protocol-port") == 0 ||
-#ifdef HAVE_MBEDTLS
-       strcmp(token, "dtls-protocol-port") == 0 ||
-#endif
        strcmp(token, "kernel-priority") == 0 ||
        strcmp(token, "allow-duplicates") == 0 ||
        strcmp(token, "local-port") == 0 ||
@@ -827,10 +824,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 
         if(strcmp(token, "protocol-port") == 0)
             protocol_port = v;
-#ifdef HAVE_MBEDTLS
-        else if(strcmp(token, "dtls-protocol-port") == 0)
-            dtls_protocol_port = v;
-#endif
         else if(strcmp(token, "kernel-priority") == 0)
             kernel_metric = v;
         else if(strcmp(token, "allow_duplicates") == 0)

@@ -264,13 +264,16 @@ dtls_cb_send(void *ctx, const unsigned char *buf, size_t len)
 {
     struct neighbour *neigh = ctx;
     int fd, rc;
+    static const unsigned char dtls_magic = 43;
 
     printf("DTLS: cb_send packet len:%zu port:%d\n", len, ntohs(neigh->buf.sin6.sin6_port));
-    fd = neigh->buf.dtls->fd != -1 ? neigh->buf.dtls->fd : dtls_protocol_socket;
-    rc = babel_send(fd, buf, len, NULL, 0,
+
+    fd = neigh->buf.dtls->fd != -1 ? neigh->buf.dtls->fd : protocol_socket;
+    rc = babel_send(fd, &dtls_magic, 1, buf, len,
                     (const struct sockaddr *)&neigh->buf.sin6,
                     sizeof(neigh->buf.sin6));
-    return rc;
+    /* mbedTLS musn't know about the dtls_magic */
+    return rc > 0 ? rc - 1 : rc;
 }
 
 static int
@@ -336,8 +339,8 @@ dtls_setup_client(struct neighbour *neigh)
         return -1;
     }
     neigh->buf.dtls->fd = rc;
-    neigh->buf.dtls->port = htons(dtls_protocol_port);
-    neigh->buf.sin6.sin6_port = htons(dtls_protocol_port);
+    neigh->buf.dtls->port = htons(protocol_port);
+    neigh->buf.sin6.sin6_port = htons(protocol_port);
 
     rc = mbedtls_ssl_setup(&neigh->buf.dtls->context, &dtls_client_conf);
     if(rc) {
@@ -430,8 +433,14 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
     int rc;
 
     if(!linklocal(addr)) {
-        fprintf(stderr, "Received packet from non-local address %s.\n",
+        fprintf(stderr, "DTLS: received packet from non-local address %s.\n",
                 format_address(addr));
+        return;
+    }
+
+    if(packet[0] != 43) {
+        fprintf(stderr, "DTLS: received malformed packet on %s from %s.\n",
+                ifp->name, format_address((unsigned char*)&from->sin6_addr));
         return;
     }
 
@@ -450,13 +459,13 @@ dtls_parse_packet(const struct sockaddr_in6 *from, struct interface *ifp,
         neigh->buf.dtls->port = from->sin6_port;
         neigh->buf.sin6.sin6_port = from->sin6_port;
     } else if(neigh->buf.dtls->port != from->sin6_port) {
-        fprintf(stderr, "Neighbour %s has changed ports from %u to %u.\n",
+        fprintf(stderr, "DTLS: neighbour %s has changed ports from %u to %u.\n",
                 format_address(addr), neigh->buf.dtls->port,
                 from->sin6_port);
     }
 
-    neigh->buf.dtls->packet = packet;
-    neigh->buf.dtls->packetlen = packetlen;
+    neigh->buf.dtls->packet = packet + 1;
+    neigh->buf.dtls->packetlen = packetlen - 1;
     neigh->buf.dtls->has_data = 1;
 
     if(neigh->buf.dtls->context.state == MBEDTLS_SSL_HANDSHAKE_OVER) {

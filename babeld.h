@@ -106,11 +106,6 @@ extern int protocol_socket;
 extern int kernel_socket;
 extern int max_request_hopcount;
 
-#ifdef HAVE_MBEDTLS
-extern int dtls_protocol_port;
-extern int dtls_protocol_socket;
-#endif
-
 void schedule_neighbours_check(int msecs, int override);
 void schedule_interfaces_check(int msecs, int override);
 int resize_receive_buffer(int size);

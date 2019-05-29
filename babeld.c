@@ -91,10 +91,6 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
-#ifdef HAVE_MBEDTLS
-int dtls_protocol_port;
-int dtls_protocol_socket;
-#endif
 static int kernel_routes_changed = 0;
 static int kernel_rules_changed = 0;
 static int kernel_link_changed = 0;
@@ -177,9 +173,6 @@ main(int argc, char **argv)
 
     parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
     protocol_port = 6696;
-#if HAVE_MBEDTLS
-    dtls_protocol_port = 50000;
-#endif
     change_smoothing_half_life(4);
     has_ipv6_subtrees = kernel_has_ipv6_subtrees();
 
@@ -535,14 +528,6 @@ main(int argc, char **argv)
         goto fail;
     }
 
-#ifdef HAVE_MBEDTLS
-    dtls_protocol_socket = babel_socket(dtls_protocol_port);
-    if(dtls_protocol_socket < 0) {
-        perror("Couldn't create link local dtls socket");
-        goto fail;
-    }
-#endif
-
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
@@ -659,8 +644,6 @@ main(int argc, char **argv)
             FD_SET(protocol_socket, &readfds);
             maxfd = MAX(maxfd, protocol_socket);
 #ifdef HAVE_MBEDTLS
-            FD_SET(dtls_protocol_socket, &readfds);
-            maxfd = MAX(maxfd, dtls_protocol_socket);
             FOR_ALL_NEIGHBOURS(neigh) {
                 struct dtls *dtls = neigh->buf.dtls;
                 if(dtls && dtls->fd != -1) {
@@ -723,14 +706,16 @@ main(int argc, char **argv)
                     if(!if_up(ifp))
                         continue;
                     if(ifp->ifindex == sin6.sin6_scope_id) {
-                        printf("Received unprotected packet size:%d\n", rc);
 #ifdef HAVE_MBEDTLS
                         /* We allow DTLS to be enabled per interface.
                            If a packet is received on an interface
                            where DTLS hasn’t been enabled, the packet
                            is considered secure. */
                         if(ifp->flags & IF_DTLS) {
-                            if(!is_unicast)
+                            if(is_unicast)
+                                dtls_parse_packet(&sin6, ifp,
+                                                  receive_buffer, rc);
+                            else
                                 parse_packet((unsigned char*)&sin6.sin6_addr,
                                              ifp, receive_buffer, rc, 1);
                         } else {
@@ -750,45 +735,36 @@ main(int argc, char **argv)
         }
 
 #ifdef HAVE_MBEDTLS
-#define dtls_handle_packet(fd)                                          \
-        do {                                                            \
-            rc = babel_recv((fd), receive_buffer, receive_buffer_size,  \
-                            (struct sockaddr*)&sin6, sizeof(sin6),      \
-                            &is_unicast);                               \
-            if(rc < 0) {                                                \
-                if(errno != EAGAIN && errno != EINTR) {                 \
-                    perror("recv");                                     \
-                    sleep(1);                                           \
-                }                                                       \
-            } else {                                                    \
-                FOR_ALL_INTERFACES(ifp) {                               \
-                    if(!if_up(ifp))                                     \
-                        continue;                                       \
-                    if(ifp->ifindex == sin6.sin6_scope_id) {            \
-                        printf("Received protected packet size:%d"      \
-                               " is_unicast:%d\n", rc, is_unicast);     \
-                        if(ifp->flags & IF_DTLS && is_unicast) {        \
-                            dtls_parse_packet(&sin6, ifp,               \
-                                              receive_buffer, rc);      \
-                        }                                               \
-                        VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,     \
-                                                    receive_buffer_size); \
-                        break;                                          \
-                    }                                                   \
-                }                                                       \
-            }                                                           \
-        } while(0)                                                      \
-
-        if(FD_ISSET(dtls_protocol_socket, &readfds)) {
-            dtls_handle_packet(dtls_protocol_socket);
-        }
         FOR_ALL_NEIGHBOURS(neigh) {
             struct dtls *dtls = neigh->buf.dtls;
             if(dtls && dtls->fd != -1 && FD_ISSET(dtls->fd, &readfds)) {
-                dtls_handle_packet(dtls->fd);
+                rc = babel_recv(dtls->fd, receive_buffer, receive_buffer_size,
+                                (struct sockaddr*)&sin6, sizeof(sin6),
+                                &is_unicast);
+                if(rc < 0) {
+                    if(errno != EAGAIN && errno != EINTR) {
+                        perror("recv");
+                        sleep(1);
+                    }
+                } else {
+                    FOR_ALL_INTERFACES(ifp) {
+                        if(!if_up(ifp))
+                            continue;
+                        if(ifp->ifindex == sin6.sin6_scope_id) {
+                            printf("Received protected packet size:%d"
+                                   " is_unicast:%dn", rc, is_unicast);
+                            if(ifp->flags & IF_DTLS && is_unicast) {
+                                dtls_parse_packet(&sin6, ifp,
+                                                  receive_buffer, rc);
+                            }
+                            VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
+                                                        receive_buffer_size);
+                            break;
+                        }
+                    }
+                }
             }
         }
-#undef dtls_handle_packet
 #endif
 
         if(local_server_socket >= 0 && FD_ISSET(local_server_socket, &readfds))
