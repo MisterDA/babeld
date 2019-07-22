@@ -82,11 +82,6 @@ struct interface_conf {
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
 
-#ifdef HAVE_MBEDTLS
-/* Use Babel over DTLS on this interface. */
-#define IF_DTLS (1 << 8)
-#endif
-
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
 #define IF_CHANNEL_INTERFERING 255
