@@ -351,7 +351,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             goto socket_error;
         } else if(msg.msg_namelen != nl->socklen) {
             fprintf(stderr,
-                    "netlink_read: unexpected sender address length (%d)\n",
+                    "netlink_read: unexpected sender address length (%u)\n",
                     msg.msg_namelen);
             goto socket_error;
         } else if(nladdr.nl_pid != 0) {
