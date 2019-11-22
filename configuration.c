@@ -514,7 +514,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                        struct interface_conf **if_conf_return)
 {
 
-    char *token;
+    char *token = NULL;
 
     if(if_conf == NULL) {
         if_conf = calloc(1, sizeof(struct interface_conf));
@@ -657,6 +657,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
     return c;
 
  error:
+    free(token);
     if(if_conf)
         free(if_conf->ifname);
     free(if_conf);
