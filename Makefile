@@ -13,19 +13,29 @@ SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
        disambiguation.c rule.c
 
-OBJS = $(SRCS:%.c=%.o)
+OBJS = $(SRCS:%.c=$(BUILD)%.o)
 
-babeld: $(OBJS)
+$(BUILD)babeld: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-babeld.o: babeld.c version.h
+$(BUILD)babeld.o: babeld.c $(BUILD)version.h
 
-local.o: local.c version.h
+$(BUILD)local.o: local.c $(BUILD)version.h
 
-kernel.o: kernel_netlink.c kernel_socket.c
+$(BUILD)kernel.o: kernel_netlink.c kernel_socket.c
 
-version.h:
+$(BUILD)version.h:
 	./generate-version.sh > $@
+
+# GNU Make
+$(BUILD)%.o: %.c
+	@mkdir -p $(@D)
+	$(COMPILE.c) $(OUTPUT_OPTION) -I./$(BUILD) $<
+
+# BSD Make
+.SUFFIXES: .c .o
+.c.o:
+	${COMPILE.c} ${.IMPSRC} -o $@
 
 .SUFFIXES: .man .html
 
@@ -41,7 +51,7 @@ all: babeld babeld.man
 install.minimal: babeld
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
 	mkdir -p $(TARGET)$(PREFIX)/bin
-	cp -f babeld $(TARGET)$(PREFIX)/bin
+	cp -f $(BUILD)babeld $(TARGET)$(PREFIX)/bin
 
 install: install.minimal all
 	mkdir -p $(TARGET)$(MANDIR)/man8
