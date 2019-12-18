@@ -611,7 +611,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->unicast = v;
-        } else if(strcmp(token, "no_hmac_verify") == 0) {
+        } else if(strcmp(token, "no-hmac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
