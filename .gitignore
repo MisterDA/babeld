@@ -2,6 +2,7 @@
 babeld
 babeld.html
 version.h
+tests/*_test
 cscope.*
 gmon.out
 core

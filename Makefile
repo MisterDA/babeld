@@ -29,6 +29,13 @@ kernel.o: kernel_netlink.c kernel_socket.c
 version.h:
 	./generate-version.sh > version.h
 
+CMOCKA_FLAGS = -I. $(shell pkg-config --libs --cflags cmocka) $(CDEBUGFLAGS)
+test: tests/util_test
+	tests/util_test
+
+tests/util_test: tests/util_test.c util.c
+	$(CC) tests/util_test.c -o tests/util_test $(CMOCKA_FLAGS)
+
 .SUFFIXES: .man .html
 
 .man.html:
@@ -36,7 +43,7 @@ version.h:
 
 babeld.html: babeld.man
 
-.PHONY: all install install.minimal uninstall clean
+.PHONY: all install install.minimal uninstall clean test
 
 all: babeld babeld.man
 
@@ -54,4 +61,4 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out
+	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out tests/*_test
