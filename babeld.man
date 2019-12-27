@@ -336,7 +336,7 @@ The
 .B value
 is a hexadecimal string (up to 64 bytes for
 .BR hmac-sha256 ,
-exactly 16 bytes for
+exactly 32 bytes for
 .BR blake2s ).
 .SS Interface configuration
 An interface is configured by a line with the following format:
@@ -466,7 +466,7 @@ The default is
 if the interface is of type
 .B tunnel,
 and
-.BR 0 
+.BR 0
 otherwise.
 .TP
 .BI hmac " id"
