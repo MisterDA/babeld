@@ -95,9 +95,9 @@ struct old_if {
     int rp_filter;
 };
 
-struct old_if *old_if = NULL;
-int num_old_if = 0;
-int max_old_if = 0;
+static struct old_if *old_if = NULL;
+static int num_old_if = 0;
+static int max_old_if = 0;
 
 static int dgram_socket = -1;
 
@@ -579,6 +579,14 @@ kernel_setup(int setup)
         close(nl_command.sock);
         nl_command.sock = -1;
         nl_setup = 0;
+
+        if(old_if) {
+            for(i = 0; i < num_old_if; i++)
+                free(old_if[i].ifname);
+            free(old_if);
+            old_if = NULL;
+            num_old_if = max_old_if = 0;
+        }
 
         if(skip_kernel_setup) return 1;
 
