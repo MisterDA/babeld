@@ -121,61 +121,31 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
     DO_HTONS(port, (unsigned short)protocol_port);
     switch(key->type) {
     case AUTH_TYPE_SHA256: {
-        /* Reference hmac-sha functions weigth up babeld by 32Kb-36Kb,
-         * so we roll our own! */
-        unsigned char pad[SHA256_Message_Block_Size], ihash[SHA256HashSize];
-        SHA256Context c;
-
-        if(key->len != sizeof(pad))
-            return -1;
-
-        for(unsigned i = 0; i < sizeof(pad); i++)
-            pad[i] = key->value[i] ^ 0x36;
-        rc = SHA256Reset(&c);
-        if(rc < 0)
-            return -1;
-
-        rc = SHA256Input(&c, pad, sizeof(pad));
-        if(rc < 0)
-            return -1;
-        rc = SHA256Input(&c, src, 16);
+        HMACContext c;
+        rc = hmacReset(&c, SHA256, key->value, key->len);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&c, port, 2);
+        rc = hmacInput(&c, src, 16);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&c, dst, 16);
+        rc = hmacInput(&c, port, 2);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&c, port, 2);
+        rc = hmacInput(&c, dst, 16);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&c, packet_header, 4);
+        rc = hmacInput(&c, port, 2);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&c, body, bodylen);
+        rc = hmacInput(&c, packet_header, 4);
         if(rc != 0)
             return -1;
-        rc = SHA256Result(&c, ihash);
+        rc = hmacInput(&c, body, bodylen);
         if(rc != 0)
             return -1;
-
-        for(unsigned i = 0; i < sizeof(pad); i++)
-            pad[i] = key->value[i] ^ 0x5c;
-        rc = SHA256Reset(&c);
+        rc = hmacResult(&c, hmac_return);
         if(rc != 0)
             return -1;
-
-        rc = SHA256Input(&c, pad, sizeof(pad));
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&c, ihash, sizeof(ihash));
-        if(rc != 0)
-            return -1;
-        rc = SHA256Result(&c, hmac_return);
-        if(rc < 0)
-            return -1;
-
         return SHA256HashSize;
     }
     case AUTH_TYPE_BLAKE2S: {
