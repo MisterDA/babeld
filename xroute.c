@@ -262,7 +262,7 @@ filter_address(struct kernel_addr *addr, void *data) {
     int maxroutes = *(int *)args[0];
     struct kernel_route *routes = (struct kernel_route*)args[1];
     int *found = (int *)args[2];
-    int ifindex = *(int*)args[3];
+    unsigned ifindex = *(unsigned*)args[3];
     int ll = args[4] ? !!*(int*)args[4] : 0;
     struct kernel_route *route = NULL;
 
