@@ -153,6 +153,7 @@ main(int argc, char **argv)
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
+    struct timespec sleeper = {0};    /* in the valley */
 
     gettime(&now);
 
@@ -568,7 +569,8 @@ main(int argc, char **argv)
         if(!if_up(ifp))
             continue;
         /* Apply jitter before we send the first message. */
-        usleep(roughly(10000));
+        sleeper.tv_nsec = roughly(10000000);
+        nanosleep(&sleeper, NULL);
         gettime(&now);
         send_hello(ifp);
         send_wildcard_retraction(ifp);
@@ -579,7 +581,8 @@ main(int argc, char **argv)
     FOR_ALL_INTERFACES(ifp) {
         if(!if_up(ifp))
             continue;
-        usleep(roughly(10000));
+        sleeper.tv_nsec = roughly(10000000);
+        nanosleep(&sleeper, NULL);
         gettime(&now);
         send_hello(ifp);
         send_wildcard_retraction(ifp);
@@ -802,7 +805,8 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
-    usleep(roughly(10000));
+    sleeper.tv_nsec = roughly(10000000);
+    nanosleep(&sleeper, NULL);
     gettime(&now);
 
     /* We need to flush so interface_updown won't try to reinstall. */
@@ -816,7 +820,8 @@ main(int argc, char **argv)
            association caches. */
         send_multicast_hello(ifp, 10, 1);
         flushbuf(&ifp->buf, ifp);
-        usleep(roughly(1000));
+        sleeper.tv_nsec = roughly(1000000);
+        nanosleep(&sleeper, NULL);
         gettime(&now);
     }
     FOR_ALL_INTERFACES(ifp) {
@@ -826,7 +831,8 @@ main(int argc, char **argv)
         send_wildcard_retraction(ifp);
         send_multicast_hello(ifp, 1, 1);
         flushbuf(&ifp->buf, ifp);
-        usleep(roughly(10000));
+        sleeper.tv_nsec = roughly(10000000);
+        nanosleep(&sleeper, NULL);
         gettime(&now);
         interface_updown(ifp, 0);
     }
