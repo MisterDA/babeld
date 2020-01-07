@@ -4,7 +4,7 @@ MANDIR = $(PREFIX)/share/man
 DEPFLAGS = -MMD -MP
 CPPFLAGS += $(DEPFLAGS)
 
-CDEBUGFLAGS = -Os -g -Wall
+CDEBUGFLAGS = -Os -g -Wall -Wextra -Wno-vla -Wno-unused-parameter
 
 DEFINES = $(PLATFORM_DEFINES)
 
