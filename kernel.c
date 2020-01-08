@@ -20,10 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <sys/utsname.h>
+#include "kernel.h"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
-#include <sys/param.h>
+#include <sys/utsname.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "babeld.h"
 

@@ -20,27 +20,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <string.h>
+#include "interface.h"
+
+#include <assert.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
 
 #include "babeld.h"
-#include "util.h"
+#include "configuration.h"
 #include "kernel.h"
-#include "interface.h"
-#include "neighbour.h"
+#include "local.h"
 #include "message.h"
 #include "route.h"
-#include "configuration.h"
-#include "local.h"
+#include "util.h"
 #include "xroute.h"
 
 #define MIN_MTU 512

@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef NEIGHBOUR_H
+#define NEIGHBOUR_H
+
+#include <sys/time.h>
+
+#include "interface.h"
+
 struct hello_history {
     unsigned short reach;
     unsigned short interval;    /* in centiseconds */
@@ -66,3 +73,5 @@ unsigned neighbour_rttcost(struct neighbour *neigh);
 unsigned neighbour_cost(struct neighbour *neigh);
 int valid_rtt(struct neighbour *neigh);
 void release_neighbours(void);
+
+#endif

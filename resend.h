@@ -20,6 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef RESEND_H
+#define RESEND_H
+
+#include <sys/time.h>
+
+struct interface;
+struct neighbour;
+
 #define REQUEST_TIMEOUT 65000
 #define RESEND_MAX 3
 
@@ -66,3 +74,5 @@ int satisfy_request(const unsigned char *prefix, unsigned char plen,
 void expire_resend(void);
 void recompute_resend_time(void);
 void do_resend(void);
+
+#endif

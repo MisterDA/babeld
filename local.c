@@ -20,27 +20,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include "local.h"
+
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <unistd.h>
 
 #include "babeld.h"
-#include "interface.h"
-#include "source.h"
-#include "neighbour.h"
-#include "kernel.h"
-#include "xroute.h"
-#include "route.h"
-#include "util.h"
 #include "configuration.h"
-#include "local.h"
+#include "interface.h"
+#include "neighbour.h"
+#include "route.h"
+#include "source.h"
+#include "util.h"
 #include "version.h"
+#include "xroute.h"
 
 int local_server_socket = -1;
 struct local_socket local_sockets[MAX_LOCAL_SOCKETS];

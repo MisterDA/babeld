@@ -20,26 +20,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include "message.h"
+
+#include <assert.h>
+#include <netinet/in.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <assert.h>
 #include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "babeld.h"
-#include "util.h"
-#include "net.h"
-#include "interface.h"
-#include "source.h"
-#include "neighbour.h"
-#include "route.h"
-#include "kernel.h"
-#include "xroute.h"
-#include "resend.h"
-#include "message.h"
 #include "configuration.h"
+#include "interface.h"
+#include "kernel.h"
+#include "neighbour.h"
+#include "net.h"
+#include "resend.h"
+#include "route.h"
+#include "source.h"
+#include "util.h"
+#include "xroute.h"
 
 unsigned char packet_header[4] = {42, 2};
 

@@ -20,6 +20,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef ROUTE_H
+#define ROUTE_H
+
+#include <sys/types.h>
+
+#include "babeld.h"
+
+struct interface;
+struct neighbour;
+struct route_stream;
+struct source;
+
 #define DIVERSITY_NONE 0
 #define DIVERSITY_INTERFACE_1 1
 #define DIVERSITY_CHANNEL_1 2
@@ -124,3 +136,5 @@ void route_changed(struct babel_route *route,
                    struct source *oldsrc, unsigned short oldmetric);
 void route_lost(struct source *src, unsigned oldmetric);
 void expire_routes(void);
+
+#endif

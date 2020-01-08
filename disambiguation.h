@@ -20,8 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef DISAMBIGUATION_H
+#define DISAMBIGUATION_H
+
+struct babel_route;
+
 int kinstall_route(const struct babel_route *route);
 int kuninstall_route(const struct babel_route *route);
 int kswitch_routes(const struct babel_route *old, const struct babel_route *new);
 int kchange_route_metric(const struct babel_route *route,
                          unsigned refmetric, unsigned cost, unsigned add);
+
+#endif

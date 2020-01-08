@@ -20,20 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <sys/time.h>
-#include <time.h>
-#include <string.h>
+#include "resend.h"
+
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <string.h>
+#include <sys/time.h>
 
 #include "babeld.h"
-#include "util.h"
-#include "interface.h"
-#include "neighbour.h"
-#include "resend.h"
-#include "message.h"
 #include "configuration.h"
+#include "interface.h"
+#include "message.h"
+#include "util.h"
+
+struct neighbour;
 
 struct timeval resend_time = {0, 0};
 struct resend *to_resend = NULL;

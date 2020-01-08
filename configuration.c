@@ -20,13 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <net/if.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <sys/time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <assert.h>
 
 #ifdef __linux
 /* Defining it rather than including <linux/rtnetlink.h> because this
@@ -34,13 +32,14 @@ THE SOFTWARE.
 #define RTPROT_BOOT 3 /* Route installed during boot */
 #endif
 
-#include "babeld.h"
-#include "util.h"
-#include "interface.h"
-#include "route.h"
-#include "kernel.h"
 #include "configuration.h"
+
+#include "babeld.h"
+#include "interface.h"
+#include "kernel.h"
+#include "route.h"
 #include "rule.h"
+#include "util.h"
 
 static struct filter *input_filters = NULL;
 static struct filter *output_filters = NULL;

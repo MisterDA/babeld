@@ -20,6 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef UTIL_H
+#define UTIL_H
+
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+#include "babeld.h"
+
 #define DO_NTOHS(_d, _s) \
     do { unsigned short _dd; \
          memcpy(&(_dd), (_s), 2); \
@@ -160,6 +169,8 @@ static inline void kdebugf(const char *format, ...) { return; }
 #else
 static inline void debugf(const char *format, ...) { return; }
 static inline void kdebugf(const char *format, ...) { return; }
+#endif
+
 #endif
 
 #endif

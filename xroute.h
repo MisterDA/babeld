@@ -20,6 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef XROUTE_H
+#define XROUTE_H
+
+struct kernel_route;
+struct xroute_stream;
+
 struct xroute {
     unsigned char prefix[16];
     unsigned char plen;
@@ -46,3 +52,5 @@ int kernel_addresses(int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
 int check_xroutes(int send_updates);
 void release_xroutes(void);
+
+#endif

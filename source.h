@@ -20,6 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef SOURCE_H
+#define SOURCE_H
+
+#include <sys/types.h>
+
 #define SOURCE_GC_TIME 200
 
 struct source {
@@ -47,3 +52,5 @@ void update_source(struct source *src,
 void expire_sources(void);
 void check_sources_released(void);
 void release_sources(void);
+
+#endif

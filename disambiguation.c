@@ -20,25 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "disambiguation.h"
+
 #include <errno.h>
-#include <assert.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/time.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "babeld.h"
-#include "util.h"
+#include "configuration.h"
 #include "interface.h"
 #include "kernel.h"
-#include "route.h"
-#include "source.h"
 #include "neighbour.h"
-#include "disambiguation.h"
-#include "configuration.h"
+#include "route.h"
 #include "rule.h"
+#include "source.h"
+#include "util.h"
 
 struct zone {
     const unsigned char *dst_prefix;

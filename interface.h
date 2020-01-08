@@ -20,6 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef INTERFACE_H
+#define INTERFACE_H
+
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 struct buffered_update {
     unsigned char id[8];
     unsigned char prefix[16];
@@ -155,3 +163,5 @@ int interface_updown(struct interface *ifp, int up);
 int interface_ll_address(struct interface *ifp, const unsigned char *address);
 void check_interfaces(void);
 void release_interfaces(void);
+
+#endif

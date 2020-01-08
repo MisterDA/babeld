@@ -20,19 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <stdlib.h>
+#include "source.h"
+
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <assert.h>
 
 #include "babeld.h"
 #include "util.h"
-#include "source.h"
-#include "interface.h"
-#include "route.h"
 
 static struct source **sources = NULL;
 static int source_slots = 0, max_source_slots = 0;

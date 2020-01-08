@@ -20,6 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
+
+struct interface_conf;
+
 /* Values returned by parse_config_from_string. */
 
 #define CONFIG_ACTION_DONE 0
@@ -80,3 +85,5 @@ int install_filter(const unsigned char *prefix, unsigned short plen,
 int finalise_config(void);
 
 void release_configurations(void);
+
+#endif

@@ -21,39 +21,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "babeld.h"
+
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <time.h>
-#include <signal.h>
-#include <assert.h>
+#include <unistd.h>
 
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-
-#include "babeld.h"
-#include "util.h"
-#include "net.h"
-#include "kernel.h"
-#include "interface.h"
-#include "source.h"
-#include "neighbour.h"
-#include "route.h"
-#include "xroute.h"
-#include "message.h"
-#include "resend.h"
 #include "configuration.h"
+#include "interface.h"
+#include "kernel.h"
 #include "local.h"
+#include "message.h"
+#include "neighbour.h"
+#include "net.h"
+#include "resend.h"
+#include "route.h"
 #include "rule.h"
+#include "source.h"
+#include "util.h"
 #include "version.h"
+#include "xroute.h"
 
 struct timeval now;
 

@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef BABELD_H
+#define BABELD_H
+
+#include <net/if.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #define INFINITY ((unsigned short)(~0))
 
 #ifndef RTPROT_BABEL
@@ -65,8 +72,8 @@ THE SOFTWARE.
 #endif
 
 #ifndef IF_NAMESIZE
-#include <sys/socket.h>
 #include <net/if.h>
+#include <sys/socket.h>
 #endif
 
 #ifdef HAVE_VALGRIND
@@ -110,3 +117,5 @@ void schedule_neighbours_check(int msecs, int override);
 void schedule_interfaces_check(int msecs, int override);
 int resize_receive_buffer(int size);
 int reopen_logfile(void);
+
+#endif

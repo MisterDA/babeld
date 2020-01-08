@@ -20,25 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include "xroute.h"
+
 #include <assert.h>
-#include <sys/time.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "babeld.h"
-#include "kernel.h"
-#include "interface.h"
-#include "neighbour.h"
-#include "message.h"
-#include "source.h"
-#include "route.h"
-#include "xroute.h"
-#include "util.h"
 #include "configuration.h"
+#include "kernel.h"
 #include "local.h"
+#include "message.h"
+#include "route.h"
+#include "util.h"
 
 static struct xroute *xroutes;
 static int numxroutes = 0, maxxroutes = 0;

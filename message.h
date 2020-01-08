@@ -20,6 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef MESSAGE_H
+#define MESSAGE_H
+
+#include <sys/time.h>
+
+struct buffered;
+struct interface;
+struct neighbour;
+
 #define MAX_BUFFERED_UPDATES 200
 
 #define MESSAGE_PAD1 0
@@ -101,3 +110,5 @@ void handle_request(struct neighbour *neigh, const unsigned char *prefix,
                     const unsigned char *src_prefix, unsigned char src_plen,
                     unsigned char hop_count,
                     unsigned short seqno, const unsigned char *id);
+
+#endif

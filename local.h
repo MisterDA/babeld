@@ -20,8 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct neighbour;
+#ifndef LOCAL_H
+#define LOCAL_H
+
 struct babel_route;
+struct interface;
+struct neighbour;
 struct xroute;
 
 #define LOCAL_FLUSH 0
@@ -55,3 +59,5 @@ int local_read(struct local_socket *s);
 int local_header(struct local_socket *s);
 struct local_socket *local_socket_create(int fd);
 void local_socket_destroy(int i);
+
+#endif

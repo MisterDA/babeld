@@ -20,24 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include "neighbour.h"
+
+#include <assert.h>
+#include <netinet/in.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <sys/time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <time.h>
-#include <assert.h>
+#include <sys/time.h>
 
 #include "babeld.h"
-#include "util.h"
 #include "interface.h"
-#include "neighbour.h"
-#include "source.h"
-#include "route.h"
-#include "message.h"
-#include "resend.h"
 #include "local.h"
+#include "resend.h"
+#include "route.h"
+#include "util.h"
 
 struct neighbour *neighs = NULL;
 
