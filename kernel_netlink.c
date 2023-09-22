@@ -368,10 +368,10 @@ static int netlink_get_extack(struct nlmsghdr *nh, int len, int done)
     struct nlattr *nla;
 
     if (done) {
-        nla = NLMSG_DATA(nh) + sizeof(int);
+        nla = (struct nlattr *)((char *)NLMSG_DATA(nh) + sizeof(int));
         len -= NLMSG_ALIGN(int);
     } else {
-        nla = NLMSG_DATA(nh) + sizeof(struct nlmsgerr);
+        nla = (struct nlattr *)((char *)NLMSG_DATA(nh) + sizeof(struct nlmsgerr));
         len -= NLMSG_ALIGN(sizeof(struct nlmsgerr));
 
         if (!(nh->nlmsg_flags & NLM_F_ACK_TLVS))
@@ -1111,9 +1111,10 @@ kernel_route(int operation, int table,
                 rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));      \
                 memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
             } else if(type == RTA_VIA) {                                \
-                rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr) + 2); \
-                *((sa_family_t*) RTA_DATA(rta)) = AF_INET6;             \
-                memcpy(RTA_DATA(rta) + 2, addr, sizeof(struct in6_addr)); \
+                struct rtvia *data = RTA_DATA(rta);                     \
+                rta->rta_len = RTA_LENGTH(2 + sizeof(struct in6_addr)); \
+                data->rtvia_family = AF_INET6;                          \
+                memcpy(data->rtvia_addr, addr, sizeof(struct in6_addr)); \
             } else {                                                    \
                 rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));     \
                 memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr));   \
