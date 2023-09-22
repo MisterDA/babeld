@@ -509,7 +509,7 @@ ae_is_v4(int ae)
 }
 
 int
-daemonise()
+daemonise(void)
 {
     int rc;
 

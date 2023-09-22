@@ -205,7 +205,7 @@ flush_xroute(struct xroute *xroute, int send_updates)
 
 /* Returns an overestimate of the number of xroutes. */
 int
-xroutes_estimate()
+xroutes_estimate(void)
 {
     return numxroutes;
 }
@@ -216,7 +216,7 @@ struct xroute_stream {
 
 struct
 xroute_stream *
-xroute_stream()
+xroute_stream(void)
 {
     struct xroute_stream *stream = calloc(1, sizeof(struct xroute_stream));
     if(stream == NULL)
