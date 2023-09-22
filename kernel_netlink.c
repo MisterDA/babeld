@@ -1327,7 +1327,7 @@ kernel_dump(int operation, struct kernel_filter *filter)
     }
 
     if(operation & CHANGE_ADDR) {
-        struct ifaddrmsg msg = {};
+        struct ifaddrmsg msg = { 0 };
 
         rc = netlink_send_dump(RTM_GETADDR, &msg, sizeof(msg));
         if(rc < 0)
