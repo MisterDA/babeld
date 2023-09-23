@@ -369,7 +369,7 @@ static int netlink_get_extack(struct nlmsghdr *nh, int len, int done)
 
     if (done) {
         nla = (struct nlattr *)((char *)NLMSG_DATA(nh) + sizeof(int));
-        len -= NLMSG_ALIGN(int);
+        len -= NLMSG_ALIGN(sizeof(int));
     } else {
         nla = (struct nlattr *)((char *)NLMSG_DATA(nh) + sizeof(struct nlmsgerr));
         len -= NLMSG_ALIGN(sizeof(struct nlmsgerr));
