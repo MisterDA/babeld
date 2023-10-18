@@ -409,7 +409,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
     struct sockaddr_nl nladdr;
     struct iovec iov;
     struct nlmsghdr *nh;
-    int len;
+    ssize_t len;
     int done = 0;
 
     struct nlmsghdr buf[8192/sizeof(struct nlmsghdr)];
@@ -519,7 +519,7 @@ static int
 netlink_talk(struct nlmsghdr *nh)
 {
 
-    int rc;
+    ssize_t rc;
     struct sockaddr_nl nladdr;
     struct msghdr msg;
     struct iovec iov;
@@ -576,7 +576,7 @@ netlink_send_dump(int type, void *data, int len) {
         char raw[NLMSG_ALIGN(sizeof(struct nlmsghdr))];
         struct nlmsghdr nh;
     } buf;
-    int rc;
+    ssize_t rc;
 
     /* At least we should send an 'struct rtgenmsg' */
     if(data == NULL || len == 0) {
