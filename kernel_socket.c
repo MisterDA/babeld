@@ -152,7 +152,7 @@ fail:
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
 
-static int ifindex_lo = -1;
+static unsigned ifindex_lo = 0;
 static int seq;
 
 static int
@@ -487,9 +487,9 @@ kernel_route(int operation, int table,
     if(plen == 128) msg.m_rtm.rtm_flags |= RTF_HOST;
     if(metric == KERNEL_INFINITY) {
         msg.m_rtm.rtm_flags |= RTF_BLACKHOLE;
-        if(ifindex_lo < 0) {
+        if(ifindex_lo == 0) {
             ifindex_lo = if_nametoindex("lo0");
-            if(ifindex_lo <= 0)
+            if(ifindex_lo == 0)
                 return -1;
         }
         msg.m_rtm.rtm_index = ifindex_lo;
@@ -603,9 +603,9 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     char *rta = (char*)rtm + sizeof(struct rt_msghdr);
     uint32_t excluded_flags = 0;
 
-    if(ifindex_lo < 0) {
+    if(ifindex_lo == 0) {
         ifindex_lo = if_nametoindex("lo0");
-        if(ifindex_lo <= 0)
+        if(ifindex_lo == 0)
             return -1;
     }
 
@@ -666,7 +666,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
         struct sockaddr_in *sin = (struct sockaddr_in *)sa;
         v4tov6(route->gw, (unsigned char *)&sin->sin_addr);
     }
-    if((int)route->ifindex == ifindex_lo)
+    if(route->ifindex == ifindex_lo)
         return -1;
 
     /* Netmask */
