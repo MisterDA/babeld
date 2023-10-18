@@ -1190,7 +1190,7 @@ flushbuf(struct buffered *buf, struct interface *ifp)
 }
 
 static void
-schedule_flush_ms(struct buffered *buf, int msecs)
+schedule_flush_ms(struct buffered *buf, unsigned msecs)
 {
     if(buf->timeout.tv_sec != 0 &&
        timeval_minus_msec(&buf->timeout, &now) < msecs)
