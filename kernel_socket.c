@@ -849,8 +849,3 @@ kernel_callback(struct kernel_filter *filter)
     return 0;
 
 }
-
-/* Local Variables:      */
-/* c-basic-offset: 4     */
-/* indent-tabs-mode: nil */
-/* End:                  */
