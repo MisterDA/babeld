@@ -1103,23 +1103,21 @@ kernel_route(int operation, int table,
         rta->rta_type = RTA_OIF;
         *(int*)RTA_DATA(rta) = ifindex;
 
-#define ADD_IPARG(type, addr) \
-        do { \
-            rta = RTA_NEXT(rta, len); \
-            rta->rta_type = type; \
-            if(v4mapped(addr)) { \
-                rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
+#define ADD_IPARG(type, addr)                                           \
+        do {                                                            \
+            rta = RTA_NEXT(rta, len);                                   \
+            rta->rta_type = type;                                       \
+            if(v4mapped(addr)) {                                        \
+                rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));      \
                 memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
-            } else { \
-                if(type == RTA_VIA) { \
-                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr) + 2); \
-                    *((sa_family_t*) RTA_DATA(rta)) = AF_INET6; \
-                    memcpy(RTA_DATA(rta) + 2, addr, sizeof(struct in6_addr)); \
-                } else { \
-                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
-                    memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
-                } \
-            } \
+            } else if(type == RTA_VIA) {                                \
+                rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr) + 2); \
+                *((sa_family_t*) RTA_DATA(rta)) = AF_INET6;             \
+                memcpy(RTA_DATA(rta) + 2, addr, sizeof(struct in6_addr)); \
+            } else {                                                    \
+                rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));     \
+                memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr));   \
+            }                                                           \
         } while (0)
 
         if(is_v4_over_v6)
